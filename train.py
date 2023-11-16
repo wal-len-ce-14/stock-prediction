@@ -4,9 +4,10 @@ from torch.utils.data import random_split
 from torch import no_grad
 import numpy as np
 import torch.nn as nn
+from torch import float32
 import torch.optim as optim
 
-epochs = 10
+epochs = 100
 
 def train(
         model,
@@ -24,9 +25,9 @@ def train(
     test_Loader = DataLoader(test_data, batch_size, shuffle=False, drop_last=True)
     
     ## optimizer, loss_function, ...
-    optimizer = optim.Adam(model.parameters())
-    loss_f = nn.BCEWithLogitsLoss()
-    # loss_f = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
+    # loss_f = nn.BCEWithLogitsLoss()
+    loss_f = nn.CrossEntropyLoss()
 
     ## training epoch
     for epoch in range(1, epochs):
@@ -34,11 +35,12 @@ def train(
         print(f"[*] epoch {epoch}")
         ## training
         for idx, (path, now) in enumerate(train_Loader):
-            print(path.shape)
+            path = path.to(float32)
+            now = now.to(float32).unsqueeze(1)
             pred = model(path)
             loss = loss_f(pred, now)
             optimizer.zero_grad()
-            loss.backword()
+            loss.backward()
             optimizer.step()
             print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
 
@@ -46,6 +48,8 @@ def train(
         print("[*] check accurracy")
         with no_grad():
             for idx, (path, now) in enumerate(test_Loader):
+                path = path.to(float32)
+                now = now.to(float32).unsqueeze(1)
                 preds = model(path)
                 print(f"now price = \n{now}")
                 print(f"pred price = \n{preds}")

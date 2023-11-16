@@ -14,6 +14,6 @@ class Linear_regression(nn.Module):
 
 
 
-x = torch.randn(10,30)
-model = Linear_regression(30, 1)
-print(model(x).shape)
+# x = torch.randn(10,30)
+# model = Linear_regression(30, 1)
+# print(model(x).shape)
