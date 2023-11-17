@@ -1,9 +1,17 @@
 from train import train 
 from net import Linear_regression as ls
+# {
+#   2344華邦電, 2303聯電, 2388威盛, 2402毅嘉, 3035智原
+# }
 
-period = 30 # day
-stockid = 2344 # 2344華邦電
+
+period = 20 # day
+stockid = 3035
 model = ls(period, 1)
-train(model, stockid)
 
+target_stock = train(model, stockid, period)
+test_para, testing_nowprice = target_stock.get_testing_date(period+1)
+pred= model(test_para)
+print('testing_nowprice = ', testing_nowprice)
+print('test_prediction = ', pred[0])
 
