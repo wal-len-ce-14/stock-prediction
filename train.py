@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import get_stock_info as get
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
@@ -6,13 +7,13 @@ import torch.nn as nn
 from torch import float32
 import torch.optim as optim
 
-epochs = 100
+epochs = 50
 
 def train(
         model,
         stock_id,
         period,
-        batch_size=10
+        batch_size=20
 ):
     ## dataset set
     stock = get.Stocks(stock_id)
@@ -37,14 +38,15 @@ def train(
         ## training
         for idx, (path, now) in enumerate(train_Loader):
             path = path.to(float32)
-            now = now.to(float32).unsqueeze(1)
+            now = now.to(float32).unsqueeze(0)
             pred = model(path)
             loss = loss_f(pred, now)
+            epoch_loss += loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
-        
+        print(f"[+] epoch loss = {epoch_loss/idx}")
         ## check accurracy
 
         print("[*] check accurracy")
@@ -53,9 +55,9 @@ def train(
                 path = path.to(float32)
                 now = now.to(float32).unsqueeze(1)
                 preds = model(path)
-                if idx == 0:
-                    print(f"now price = \n{now}")
-                    print(f"pred price = \n{preds}")
+                # print(f"now price = \n{now}")
+                # print(f"pred price = \n{preds}")
+                print(f"\t[+] diff = +-{np.round(torch.sum(abs(now-preds) / now ) / batch_size, 2)}%")
     print(f"recent stock info {stock.get_recent()}")
     return stock
 

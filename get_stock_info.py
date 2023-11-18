@@ -10,67 +10,50 @@ from datetime import datetime, timedelta
 
 np.set_printoptions(suppress=True, precision=2)
 
+def init_data(stock):
+    for i in range(1,13):
+        mess =stock.fetch(2020,i)
+        for idx, st in enumerate(mess):
+            if i == 1 and idx == 0:
+                data = np.array([[st.close, st.capacity, st.change]])
+            else:
+                data = np.append(data, [[st.close, st.capacity, st.change]], axis=0)
+    print("wait...")
+    for i in range(1,13):
+        mess = stock.fetch(2021,i)
+        for st in mess:
+            data = np.append(data, [[st.close, st.capacity, st.change]], axis=0)
+    print("wait...")
+    for i in range(1,13):
+        mess = stock.fetch(2022,i)
+        for st in mess:
+            data = np.append(data, [[st.close, st.capacity, st.change]], axis=0)
+    print("wait...")
+    time.sleep(3)
+    for i in range(1,13):
+        mess = mess = stock.fetch(2023,i)
+        for st in mess:
+            data = np.append(data, [[st.close, st.capacity, st.change]], axis=0)
+    for i in range(1,2):
+        mean = np.mean(data[:,i])
+        std_value = np.std(data[:,i])
+        normalized = (data[:,i] - mean) / std_value
+        data[:,i] = normalized
+    # print(mean, std_value, normalized)
 
-# stock_id = 2344
-# tw2618= yf.Ticker(f"{stock_id}.TW")
-
-# d10 = tw2618.history('60m', '15m')
-
-# print(d10['Open'].values)
-# ary = d10[['Open', 'High', 'Low', 'Close', 'Volume']].to_numpy()
-
-
+    return data
 
 class Stocks():
     def __init__(self, stock_id):
-        self.data = np.array([])
-        ss = Stock(f"{stock_id}")
-        for i in range(1,13):
-            mess = ss.fetch(2020,i)
-            for st in mess:
-                self.data = np.append(self.data, st.close)
-        print("wait...")
-        for i in range(1,13):
-            mess = ss.fetch(2021,i)
-            for st in mess:
-                self.data = np.append(self.data, st.close)
-        print("wait...")
-        for i in range(1,13):
-            mess = ss.fetch(2022,i)
-            for st in mess:
-                self.data = np.append(self.data, st.close)
-        print("wait...")
-        time.sleep(3)
-        for i in range(1,13):
-            mess = mess = ss.fetch(2023,i)
-            for st in mess:
-                self.data = np.append(self.data, st.close)
-                
-        # self.stock = Stock(f"{stock_id}")
-        # self.stock = yf.Ticker(f"{stock_id}.TW")
-        ## 個時段數據
-        # self.year = self.stock.price()
-        # print(self.year)
-        # self.year = self.stock.history('1y', '1d')
-        # time.sleep(3)
-        # self.recent = self.stock.history('3mo', '1d')
+        self.stock = Stock(f"{stock_id}")
+        self.data = init_data(self.stock)
 
-        # print(np.round(self.year['Close'].values,2))
     def get_price_year(self):
         return self.data
     def get_recent(self):
-        return self.data[-10:]
+        return self.data[-10:,0]
     def get_testing_date(self, period):
-        return torch.tensor(self.data[-period:-1]).to(torch.float32), torch.tensor(self.data[-1]).to(torch.float32)
-            # def get_price_year(self):
-            #     return self.year['Close'].values
-            # def get_recent(self):
-            #     # print(self.recent['Close'].tail(10))
-            #     return self.recent
-    # def get_testing_date(self, start, period):
-    #     startdate = datetime.strptime(start, "%Y-%m-%d")
-    #     testing_date = self.stock.history(start=start, end=startdate-timedelta(days=period))['Close'].values
-    #     return testing_date[:-1], testing_date[-1]
+        return torch.tensor(self.data[-(period):-1]).to(torch.float32).unsqueeze(0), torch.tensor(self.data[-1][0]).to(torch.float32)
 
     
 class Data(Dataset):
@@ -79,10 +62,14 @@ class Data(Dataset):
         self.train_window = train_window
         
     def __len__(self):
+        
         return len(self.path_info)-self.train_window
     def __getitem__(self, index):
-        info = np.array([])
         for i in range(index, index+self.train_window):
-            info = np.append(info, self.path_info[i])
-        return info, self.path_info[i]
+            if i == index: 
+                info = np.array([self.path_info[i]])
+            else:
+                info = np.append(info, [self.path_info[i]], axis=0)
+
+        return info, self.path_info[i][0]
     
