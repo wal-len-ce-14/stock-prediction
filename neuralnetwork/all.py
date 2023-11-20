@@ -7,16 +7,16 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 
-ss = twstock.Stock('2303')
-print((ss.fetch(2023,3)))
+# ss = twstock.Stock('2303')
+# print((ss.fetch(2023,3)))
 
 
-# aa = np.empty((1,2))
+aa = np.array([[1,2,3,4,5,6,7,8,9]])
 # aa = np.append(aa, [[]],axis=1)
 
-# print(aa)
-# print(np.append(aa, [[8,7]], axis=0))
-# print((np.append(aa, [[8,7]], axis=0))[0])
+print(aa)
+print(np.append(aa, [[9,8,7,6,5,4,3,2,1]], axis=0))
+# print(np.append(aa, [[8,7]]))
 
 # aa = torch.randn(900,3)
 # print(aa.shape)
