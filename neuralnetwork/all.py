@@ -11,11 +11,12 @@ from datetime import datetime
 # print((ss.fetch(2023,3)))
 
 
-aa = np.array([[1,2,3,4,5,6,7,8,9]])
+aa = []
 # aa = np.append(aa, [[]],axis=1)
 
+aa = [1,2]
 print(aa)
-print(np.append(aa, [[9,8,7,6,5,4,3,2,1]], axis=0))
+# print(np.append(aa, [[9,8,7,6,5,4,3,2,1]], axis=0))
 # print(np.append(aa, [[8,7]]))
 
 # aa = torch.randn(900,3)

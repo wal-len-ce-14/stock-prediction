@@ -55,6 +55,8 @@ class Stocks():
     def get_testing_date(self, period):
         return torch.tensor(self.data[-(period):-1]).to(torch.float32).unsqueeze(0), torch.tensor(self.data[-1][0]).to(torch.float32)
 
+s = Stocks(2344)
+print(type(s))
     
 class Data(Dataset):
     def __init__(self, path, train_window):  
