@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 
-# ss = twstock.Stock('2303')
-# print((ss.fetch(2023,3)))
+ss = twstock.Stock('2303')
+print((ss.fetch(2023,1)))
 
 
 # aa = []
@@ -53,16 +53,16 @@ from datetime import datetime
 # print(stock.rolling(3).std(), stock.rolling(3).mean())
 # print(stock)
 
-all = {}
+# all = {}
 
-new ={
-    'tt' : {'aa': 123}
-}
+# new ={
+#     'tt' : {'aa': 123}
+# }
 
-all.update(new)
+# all.update(new)
 
-new ={
-    'bb' : {'aa': 123}
-}
-all.update(new)
-print(all)
+# new ={
+#     'bb' : {'aa': 123}
+# }
+# all.update(new)
+# print(all)

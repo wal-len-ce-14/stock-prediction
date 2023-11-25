@@ -1,28 +1,45 @@
 import requests as req
 from bs4 import BeautifulSoup
-
-stockid = 2330
-# url = f'https://goodinfo.tw/tw/ShowBuySaleChart.asp?STOCK_ID={stockid}&CHT_CAT=DATE'
-url = 'https://goodinfo.tw/tw/ShowBuySaleChart.asp?STOCK_ID=4173&CHT_CAT=DATE&SHEET=%E4%B8%89%E5%A4%A7%E6%B3%95%E4%BA%BA%E8%B2%B7%E8%B3%A3%E5%BC%B5%E6%95%B8&STEP=DATA&PERIOD=365'
-header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0'}
-params = {
-    'STOCK_ID': 4173,
-    'CHT_CAT': 'DATE',
-    'SHEET': '三大法人買賣張數',
-    'STEP': 'DATA',
-    'PERIOD': 365
-}
-res = req.post(url, headers=header, params=params)
-res.encoding ='utf-8'
-soup = BeautifulSoup(res.content, 'lxml')
-print(soup)
-
-
-
+from urllib import parse
+from datetime import date, timedelta
 import pandas as pd
 
-Legal_person_trading = soup.select_one('#divBuySaleDetailData').p.prettify()
-print(Legal_person_trading)
-# Legal_person_trading_dfs = pd.read_html(Legal_person_trading)
-# Legal_person_trading_dfs = Legal_person_trading_dfs[2].set_index('期別')
-# print((Legal_person_trading_dfs.tail()))
+# token:
+# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRlIjoiMjAyMy0xMS0yNSAxNToxOTowNyIsInVzZXJfaWQiOiJ3YWxsZW5jZSIsImlwIjoiNjEuNjQuMjguNTYifQ.QUZrY4N6RhlIO90kIDR4YPWQpkAsRZMtLFgW2YJpn_k
+
+def get_juridical_person(stockid, start, end=2023):
+    params = {
+        "dataset": 'TaiwanStockInstitutionalInvestorsBuySell',
+        "data_id": stockid,
+        "start_date": f'{start}-01-01',
+        "end_date": f'{end}-12-31',
+        "token": 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRlIjoiMjAyMy0xMS0yNSAxNToxOTowNyIsInVzZXJfaWQiOiJ3YWxsZW5jZSIsImlwIjoiNjEuNjQuMjguNTYifQ.QUZrY4N6RhlIO90kIDR4YPWQpkAsRZMtLFgW2YJpn_k'
+    }
+    url = "https://api.finmindtrade.com/api/v4/data"
+
+    data = req.get(url, params=params)
+    data = pd.DataFrame(data.json()['data']).drop(columns=['stock_id'])
+    data = data.set_index(data['date'])
+    data = data.reindex(columns=['name', 'buy', 'sell'])
+    data['total'] = data['buy'] - data['sell']
+    Investment_Trust = data[data['name'] == 'Investment_Trust']
+    Foreign_Investor = data[data['name'] == 'Foreign_Investor']
+    Dealer_Hedging = data[data['name'] == 'Dealer_Hedging']
+    Dealer_self = data[data['name'] == 'Dealer_self']
+    
+
+    Leverage = pd.concat([Foreign_Investor['total'], 
+                          Investment_Trust['total'], 
+                          Dealer_self['total'],
+                          Dealer_Hedging['total']], 
+                          axis=1, 
+                          keys=['Foreign_Investor', 
+                                'Investment_Trust', 
+                                'Dealer_self',
+                                'Dealer_Hedging'])
+
+    return Leverage
+
+
+# print(get_juridical_person(2330, 2023).tail())
+

@@ -13,7 +13,7 @@ for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
 
     print(f"[*] train {stockid}.TW")
 
-    stock = STOCK(stockid, 2013)
+    stock = STOCK(stockid, 2020)
     stock.add_target_info()
     stock.add_moving_average_info()
     stock.add_BBands_info()
@@ -23,6 +23,7 @@ for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
         n_estimators=100, 
         min_samples_split=80
     )['model']
+
 
     test_prodictors = stock.to_test(val=20)[stock.prodictors]
     groundtrue = stock.to_test(val=20)['target'].values
@@ -41,7 +42,7 @@ for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
     print()
 
     import joblib
-    joblib.dump(model, f'model_{stockid}.joblib')
+    joblib.dump(model, f'./randomforest/model/model_{stockid}.joblib')
 
     # loaded_model = joblib.load(f'model_{stockid}.joblib')
     # test_prodictors = stock.to_test(val=20)[stock.prodictors]
@@ -105,15 +106,17 @@ for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
     # print('best_inreal_t', best_inreal_t)
     # print(f"########### ############# ############\n")
 
-    # new_record =  {
-    #     'stocks': {
-    #         'stockid': stockid,
-    #         'best': best,
-    #         'best_t': best_t,
-    #         'best_inreal': best_inreal,
-    #         'best_inreal_t': best_inreal_t
-    #     }
-    # }
-    # all.update(new_record)
+    new_record =  {
+        'stocks': {
+            'stockid': stockid,
+            'acc': accuracy,
+            
+            # 'best': best,
+            # 'best_t': best_t,
+            # 'best_inreal': best_inreal,
+            # 'best_inreal_t': best_inreal_t
+        }
+    }
+    all.update(new_record)
 
 print(all)
