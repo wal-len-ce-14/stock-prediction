@@ -1,23 +1,37 @@
 from setup import STOCK
-
+import numpy as np
 # {
-#   2330台積電, 2344華邦電, 2303聯電, 2388威盛, 2402毅嘉, 3035智原, 2618長榮航, 2313華通, 
-#   3037欣興, 2883開發金, 2882國泰金, 6488環球晶
+#   
 # }
 
 
 all = {}
-
-for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
+#             
+for id in [
+    2330, #2330台積電
+    2344, #2344華邦電
+    2301, #2301光寶科
+    2303, #2303聯電
+    2388, #2388威盛
+    2402, #2402毅嘉
+    3035, #3035智原
+    2618, #2618長榮航
+    2313, #2313華通
+    3037, #3037欣興
+    2882, #2882國泰金
+    1513  #1513中興電
+]:
     stockid = id
 
     print(f"[*] train {stockid}.TW")
 
-    stock = STOCK(stockid, 2020)
+    stock = STOCK(stockid, 2013)
     stock.add_target_info()
-    stock.add_moving_average_info()
-    stock.add_BBands_info()
+    # stock.add_moving_average_info()
+    # stock.add_BBands_info()
+    stock.add_Leverage()
     stock.drop_Nan()
+    # break
     model = stock.Forest_model(
         split=100, 
         n_estimators=100, 
@@ -25,8 +39,8 @@ for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
     )['model']
 
 
-    test_prodictors = stock.to_test(val=20)[stock.prodictors]
-    groundtrue = stock.to_test(val=20)['target'].values
+    test_prodictors = stock.to_test(val=25)[stock.prodictors]
+    groundtrue = stock.to_test(val=25)['target'].values
     result_pro = model.predict_proba(test_prodictors)
     result = model.predict(test_prodictors)
 
@@ -107,9 +121,9 @@ for id in [2330, 2344, 2303, 2388, 2402, 3035, 2618, 2313, 3037, 2883, 2882]:
     # print(f"########### ############# ############\n")
 
     new_record =  {
-        'stocks': {
-            'stockid': stockid,
-            'acc': accuracy,
+        f'stocks_{stockid}': {
+            'prec': precision,
+            'acc': accuracy
             
             # 'best': best,
             # 'best_t': best_t,
