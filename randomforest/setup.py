@@ -61,6 +61,7 @@ class STOCK():
         self.start = start_year
         self.end = end_year
         self.stock = get_stock_history(stockid, start_year, end_year)
+        self.preserve = self.stock.tail(1)
         self.prodictors = [
             # 'close',
             # 'capacity', 
@@ -145,8 +146,8 @@ class STOCK():
         from scraping import get_juridical_person as get
         Leverage = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, Leverage, on='date', how='inner')
-        horizons_sum = [1, 5, 10, 20, 60]
-        horizon_ratio = [5, 10, 20, 60, 120]
+        horizons_sum = [1,5,10,20,60]
+        horizon_ratio = [5,10,20,60]
         new_predictor = []
         lever_col = []
         for horizon in horizons_sum:
@@ -164,6 +165,7 @@ class STOCK():
                 Leverage_bias_up = f'{lever_sum}_up_{horizon}'
                 Leverage_bias_down = f'{lever_sum}_down_{horizon}'
                 Leverage_mean = f'{lever_sum}_mean_{horizon}'
+                self.stock.loc[self.stock[lever_sum] == 0, lever_sum] = 1
                 up_ratio = up_std / self.stock[lever_sum]
                 down_ratio = down_std / self.stock[lever_sum]
                 mean_ratio = mean / self.stock[lever_sum]
@@ -173,17 +175,20 @@ class STOCK():
                 self.stock[Leverage_bias_down] = down_ratio*100
                 self.stock[Leverage_mean] = mean_ratio*100
 
-                self.stock.loc[self.stock[Leverage_bias_up] > 1000000] = 1000000
-                self.stock.loc[self.stock[Leverage_bias_down] > 1000000] = 1000000
-                self.stock.loc[self.stock[Leverage_mean] > 1000000] = 1000000
+                self.stock.loc[self.stock[Leverage_bias_up] > 1000000, Leverage_bias_up] = 1000000.0
+                self.stock.loc[self.stock[Leverage_bias_up] < -1000000, Leverage_bias_up] = -1000000.0
+                self.stock.loc[self.stock[Leverage_bias_down] > 1000000, Leverage_bias_down] = 1000000.0
+                self.stock.loc[self.stock[Leverage_bias_down] < -1000000, Leverage_bias_down] = -1000000.0
+                self.stock.loc[self.stock[Leverage_mean] > 1000000, Leverage_mean] = 1000000.0
+                self.stock.loc[self.stock[Leverage_mean] < -1000000, Leverage_mean] = -1000000.0
 
                 new_predictor += [Leverage_bias_up, Leverage_bias_down, Leverage_mean]
 
         self.prodictors += new_predictor
         
-    def Forest_model(self, split, n_estimators=800, min_samples_split=70, random_state=1, val=50):
+    def Forest_model(self, split, n_estimators=800, min_samples_split=70, random_state=1, depth=6, val=50):
         from sklearn.ensemble import RandomForestClassifier
-        model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, random_state=random_state)
+        model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, max_depth=depth, random_state=random_state)
         real_world = self.stock.iloc[:-(val)]
         train = real_world.iloc[:-(split)]
         test = real_world.iloc[-(split):]
@@ -192,9 +197,13 @@ class STOCK():
         from sklearn.metrics import precision_score, accuracy_score
         preds = model.predict(test[self.prodictors])
         preds = pd.Series(preds)
-        precision = precision_score(preds, test["target"], average='macro')
-        accuracy = accuracy_score(preds, test["target"])
+        precision = precision_score(preds.values, test["target"].values, average='macro')
+        accuracy = accuracy_score(preds.values, test["target"].values)
+        # print('#########')
+        # print('preds\n', preds.values)
+        # print('test["target"]\n', test["target"].values)
         print('#########')
+        print('train test')
         print(f'[+] precision {precision:.4f}\n[+] accuracy {accuracy:.4f}, \n')
         return {
             'model': model,
@@ -203,13 +212,16 @@ class STOCK():
         }
 
     def drop_Nan(self):
+        self.preserve = self.stock.tail(1)
         self.stock = self.stock.dropna()
         self.stock = self.stock.round(3) 
-        
-    
-    def to_test(self, val=10):
+          
+    def to_test(self, val=10):  # 回傳從未train過的test資料
         # print(self.real_world)
         return self.stock[-(val):]
+
+    def predict_tomorrow(self):
+        return self.preserve[self.prodictors]
 
 # stock = STOCK(2344, 2020,2023)
 # stock.add_Leverage()
