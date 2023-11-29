@@ -41,5 +41,26 @@ def get_juridical_person(stockid, start, end=2023):
     return Leverage
 
 
-# print(get_juridical_person(2330, 2023).tail())
+def get_Margin_info(stockid, start, end=2023):
+    params = {
+        "dataset": 'TaiwanStockMarginPurchaseShortSale',
+        "data_id": stockid,
+        "start_date": f'{start}-01-01',
+        "end_date": f'{end}-12-31',
+        "token": 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRlIjoiMjAyMy0xMS0yNSAxNToxOTowNyIsInVzZXJfaWQiOiJ3YWxsZW5jZSIsImlwIjoiNjEuNjQuMjguNTYifQ.QUZrY4N6RhlIO90kIDR4YPWQpkAsRZMtLFgW2YJpn_k'
+    }
+    url = "https://api.finmindtrade.com/api/v4/data"
+
+    data = req.get(url, params=params)
+    data = pd.DataFrame(data.json()['data']).drop(columns=['stock_id','MarginPurchaseLimit','ShortSaleLimit'])
+    data = data.set_index(data['date'])
+    # print(data[['ShortSaleBuy', 'ShortSaleCashRepayment', 'ShortSaleSell', 'ShortSaleTodayBalance']].tail(10))
+    data.loc[data['MarginPurchaseYesterdayBalance'] == 0,'MarginPurchaseYesterdayBalance'] = 1
+    data.loc[data['ShortSaleYesterdayBalance'] == 0,'ShortSaleYesterdayBalance'] = 1
+    data['Margin'] = (data['MarginPurchaseBuy'] - data['MarginPurchaseCashRepayment'] - data['MarginPurchaseSell'])*100 / data['MarginPurchaseYesterdayBalance']
+    data['Sale'] = -(data['ShortSaleBuy'] + data['ShortSaleCashRepayment'] - data['ShortSaleSell'])*100 / data['ShortSaleYesterdayBalance']
+    return data[['Margin', 'Sale']]
+
+# get_juridical_person(2330, 2023)
+# print()
 

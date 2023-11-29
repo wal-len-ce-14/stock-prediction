@@ -6,7 +6,6 @@ import time
 from datetime import datetime
 
 
-
 # tws.__update_codes()
 
 def get_stock_history(stockid, start_year, end_year):
@@ -78,7 +77,7 @@ class STOCK():
         #     return 1
         # elif (row['tomorrow_change']) < -0.07:
         #     return -3
-        # elif (row['tomorrow_change']) < -0.04:
+        # elif (row['tomorrow_change']) < -0.03:
         #     return -2
         # elif (row['tomorrow_change']) < -0.07:
         #     return -1
@@ -97,7 +96,7 @@ class STOCK():
         self.prodictors += ['change_ratio']
         
     def add_moving_average_info(self):  # 均線比率
-        horizons = [2,5,20,60, 120, 240]
+        horizons = [2,5,10,20,60,120,240,500]
         new_predictor = []
 
         for horizon in horizons:
@@ -122,7 +121,7 @@ class STOCK():
         return self.prodictors
 
     def add_BBands_info(self):  # 布林通道
-        horizons = [5, 10, 20, 60, 90, 120, 240]
+        horizons = [2,5,10,20,60,120,240,500]
         new_predictor = []
 
         for horizon in horizons:
@@ -131,8 +130,8 @@ class STOCK():
             self.stock[std_col] = rolling_std
 
             mean = np.array(self.stock['close'].rolling(horizon).mean())
-            BBand_up = ((mean + rolling_std*2)-self.stock['close']) / self.stock['close']
-            BBand_down = ((mean - rolling_std*2)-self.stock['close']) / self.stock['close']
+            BBand_up = ((mean + rolling_std*1.8)-self.stock['close']) / self.stock['close']
+            BBand_down = ((mean - rolling_std*1.8)-self.stock['close']) / self.stock['close']
             std_up_col = f"BBand_up_{horizon}"
             std_down_col = f"BBand_down_{horizon}"
             self.stock[std_up_col] = BBand_up*100
@@ -146,46 +145,37 @@ class STOCK():
         from scraping import get_juridical_person as get
         Leverage = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, Leverage, on='date', how='inner')
-        horizons_sum = [1,5,10,20,60]
-        horizon_ratio = [5,10,20,60]
+        horizons_sum = [1,3,5,10,20,40,60,120,240,500]
         new_predictor = []
-        lever_col = []
         for horizon in horizons_sum:
             for lever in ['Foreign_Investor','Investment_Trust','Dealer_self','Dealer_Hedging']:
-                rolling_sum = self.stock[lever].rolling(horizon).sum()
-                leverage_col = f'{lever}_{horizon}'
-                lever_col += [leverage_col]
-                self.stock[leverage_col] = rolling_sum
-        for horizon in horizon_ratio:
-            for lever_sum in lever_col:
-                rolling_std = (self.stock[lever_sum].rolling(horizon)).std(ddof=1)
-                up_std = self.stock[lever_sum]+2*rolling_std
-                down_std = self.stock[lever_sum]-2*rolling_std
-                mean = (self.stock[lever_sum].rolling(horizon)).mean()
-                Leverage_bias_up = f'{lever_sum}_up_{horizon}'
-                Leverage_bias_down = f'{lever_sum}_down_{horizon}'
-                Leverage_mean = f'{lever_sum}_mean_{horizon}'
-                self.stock.loc[self.stock[lever_sum] == 0, lever_sum] = 1
-                up_ratio = up_std / self.stock[lever_sum]
-                down_ratio = down_std / self.stock[lever_sum]
-                mean_ratio = mean / self.stock[lever_sum]
+                interval_ratio = self.stock[lever] / self.stock[lever].rolling(horizon).sum().replace(0,1)
+                interval_ratio_col = f'{lever}_{horizon}'
+                self.stock[interval_ratio_col] = interval_ratio
+                new_predictor += [interval_ratio_col]
+        self.prodictors += new_predictor
 
+    def add_Margin(self):
+        from scraping import get_Margin_info as get
+        margin = get(self.stockid, self.start)
+        self.stock = pd.merge(self.stock, margin, on='date', how='inner')
+        self.prodictors += ['Margin', 'Sale']
+        horizons = [2,3,5,10,20,60,120,240]
+        new_predictor = []
+        for horizon in horizons:
+            avg_M = self.stock['Margin'].rolling(horizon).mean()
+            avg_col_M = f'Margin_{horizon}_avg'
+            self.stock[avg_col_M] = avg_M
+            new_predictor += [avg_col_M]
 
-                self.stock[Leverage_bias_up] = up_ratio*100
-                self.stock[Leverage_bias_down] = down_ratio*100
-                self.stock[Leverage_mean] = mean_ratio*100
-
-                self.stock.loc[self.stock[Leverage_bias_up] > 1000000, Leverage_bias_up] = 1000000.0
-                self.stock.loc[self.stock[Leverage_bias_up] < -1000000, Leverage_bias_up] = -1000000.0
-                self.stock.loc[self.stock[Leverage_bias_down] > 1000000, Leverage_bias_down] = 1000000.0
-                self.stock.loc[self.stock[Leverage_bias_down] < -1000000, Leverage_bias_down] = -1000000.0
-                self.stock.loc[self.stock[Leverage_mean] > 1000000, Leverage_mean] = 1000000.0
-                self.stock.loc[self.stock[Leverage_mean] < -1000000, Leverage_mean] = -1000000.0
-
-                new_predictor += [Leverage_bias_up, Leverage_bias_down, Leverage_mean]
+            avgS = self.stock['Sale'].rolling(horizon).mean()
+            avg_colS = f'Sale_{horizon}_avg'
+            self.stock[avg_colS] = avgS
+            new_predictor += [avg_colS]
 
         self.prodictors += new_predictor
-        
+
+     
     def Forest_model(self, split, n_estimators=800, min_samples_split=70, random_state=1, depth=6, val=50):
         from sklearn.ensemble import RandomForestClassifier
         model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, max_depth=depth, random_state=random_state)
@@ -202,8 +192,7 @@ class STOCK():
         # print('#########')
         # print('preds\n', preds.values)
         # print('test["target"]\n', test["target"].values)
-        print('#########')
-        print('train test')
+        print('######### train test #########')
         print(f'[+] precision {precision:.4f}\n[+] accuracy {accuracy:.4f}, \n')
         return {
             'model': model,
@@ -223,14 +212,15 @@ class STOCK():
     def predict_tomorrow(self):
         return self.preserve[self.prodictors]
 
-# stock = STOCK(2344, 2020,2023)
-# stock.add_Leverage()
+# stock = STOCK(2329, 2023,2023)
+
 # stock.add_target_info()
 # stock.add_moving_average_info()
 # stock.add_BBands_info()
 # stock.add_Leverage()
-# print(stock.prodictors)
+# stock.add_Margin()
 # stock.drop_Nan()
+# print(stock.stock)
 # model = stock.Forest_model(
 #     split=200, 
 #     n_estimators=200, 
