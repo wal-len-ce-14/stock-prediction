@@ -1,0 +1,7 @@
+pandas
+numpy
+twstock
+lxml
+scikit-learn
+joblib
+bs4
