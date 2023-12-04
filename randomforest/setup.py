@@ -1,5 +1,5 @@
 import twstock as tws
-import yfinance as yf
+# import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
@@ -16,14 +16,13 @@ def get_stock_history(stockid, start_year, end_year):
             'date',
             'close',
             'capacity',
-            'change',
             'transaction'
         ]
         info = [[]]
         stock = tws.Stock(f"{stockid}")
         for year in range(start_year, end_year+1):
             print(f"[+] get stock info from {year} ...")
-            time.sleep(0.2)
+            time.sleep(0.3)
             for month in range(1, 13):
                 stock_infos = stock.fetch(year,month)
                 for idx, stock_info in enumerate(stock_infos):
@@ -31,24 +30,20 @@ def get_stock_history(stockid, start_year, end_year):
                         stock_info.date.strftime("%Y-%m-%d"),
                         stock_info.close,
                         stock_info.capacity, 
-                        stock_info.change,
                         stock_info.transaction]])
                     if month == 1 and year == start_year and idx == 0:
                         info = new_info
                     else:
                         info = np.append(info, new_info, axis=0)
-        # print(f"get stock info from {year+1} ...")
         stockpd = pd.DataFrame(          # get stock data
             info, 
             columns=colume,
         )
         stockpd[['close',
             'capacity',
-            'change',
             'transaction'
         ]] = stockpd[['close',
             'capacity',
-            'change',
             'transaction'
         ]].astype('float64')
         stockpd = stockpd.set_index('date')
@@ -61,42 +56,47 @@ class STOCK():
         self.end = end_year
         self.stock = get_stock_history(stockid, start_year, end_year)
         self.preserve = self.stock.tail(1)
-        self.prodictors = [
-            # 'close',
-            # 'capacity', 
-            # 'change',
-            # 'transaction'
-        ]
+        self.prodictors = []
 
-    def classification(self, row):
-        # if (row['tomorrow_change']) > 0.065:
+    def classification(self, row, day=1):
+        # if (row[f'change_value{day}']) > 0.2: 
+        #     return 4
+        # elif (row[f'change_value{day}']) > 0.07: 
         #     return 3
-        # if (row['tomorrow_change']) > 0.03:
+        # elif (row[f'change_value{day}']) > 0.04: 
         #     return 2
-        # elif (row['tomorrow_change']) > 0.007:
+        # elif (row[f'change_value{day}']) > 0.005: 
         #     return 1
-        # elif (row['tomorrow_change']) < -0.07:
+        # elif (row[f'change_value{day}']) < -0.1: 
         #     return -3
-        # elif (row['tomorrow_change']) < -0.03:
+        # elif (row[f'change_value{day}']) < -0.05: 
         #     return -2
-        # elif (row['tomorrow_change']) < -0.07:
+        # elif (row[f'change_value{day}']) < -0.02: 
         #     return -1
-        # else:
-        #     return 0
-        if (row['tomorrow_change']) > 0: 
+        if (row[f'change_value{day}']) > 0.0001:
             return 1
         else:
             return 0
 
-    def add_target_info(self, close='close', change='change'):  # 一般資訊
-        self.stock['change_ratio'] = (self.stock[change] / self.stock[close].shift(1))*100
-        self.stock['tomorrow_change'] = (self.stock[change].shift(-1) / self.stock[close])  # set target data
-        self.stock['target'] = self.stock.apply(self.classification, axis=1)
-        self.stock['tomorrow_change'] = self.stock['tomorrow_change'].apply(lambda x: format(x, ".2%"))
-        self.prodictors += ['change_ratio']
+    def add_target_info(self, close='close'):  # 一般資訊
+        self.stock['change_value1'] = ((self.stock[close] - self.stock[close].shift(1)) / self.stock[close].shift(1))
+        self.stock['change_value2'] = ((self.stock[close] - self.stock[close].shift(2)) / self.stock[close].shift(2))
+        self.stock['change_value5'] = ((self.stock[close] - self.stock[close].shift(5)) / self.stock[close].shift(5))
+        self.stock['change_value10'] = ((self.stock[close] - self.stock[close].shift(10)) / self.stock[close].shift(10))
+
+        self.stock['target'] = self.stock.apply(self.classification, axis=1, args=(1,))
+        self.stock['target1'] = self.stock.apply(self.classification, axis=1, args=(1,))
+        self.stock['target2'] = self.stock.apply(self.classification, axis=1, args=(2,))
+        self.stock['target5'] = self.stock.apply(self.classification, axis=1, args=(5,))
+        self.stock['target10'] = self.stock.apply(self.classification, axis=1, args=(10,))
+
+        self.stock['short_term'] = (self.stock['change_value5'] + self.stock['change_value2']) / 2
+        self.stock['mid_term'] = (self.stock['change_value10'] - self.stock['change_value5']) / 2
+
+        self.prodictors += ['change_value1', 'change_value2', 'change_value5', 'change_value10', 'short_term', 'mid_term']
         
     def add_moving_average_info(self):  # 均線比率
-        horizons = [2,5,10,20,60,120,240,500]
+        horizons = [2,5,10,20,60]
         new_predictor = []
 
         for horizon in horizons:
@@ -121,7 +121,7 @@ class STOCK():
         return self.prodictors
 
     def add_BBands_info(self):  # 布林通道
-        horizons = [2,5,10,20,60,120,240,500]
+        horizons = [2,5,10,20,60]
         new_predictor = []
 
         for horizon in horizons:
@@ -145,7 +145,7 @@ class STOCK():
         from scraping import get_juridical_person as get
         Leverage = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, Leverage, on='date', how='inner')
-        horizons_sum = [1,3,5,10,20,40,60,120,240,500]
+        horizons_sum = [1,3,5,10,20,40,60]
         new_predictor = []
         for horizon in horizons_sum:
             for lever in ['Foreign_Investor','Investment_Trust','Dealer_self','Dealer_Hedging']:
@@ -160,7 +160,7 @@ class STOCK():
         margin = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, margin, on='date', how='inner')
         self.prodictors += ['Margin', 'Sale']
-        horizons = [2,3,5,10,20,60,120,240]
+        horizons = [2,3,5,10,20,60]
         new_predictor = []
         for horizon in horizons:
             avg_M = self.stock['Margin'].rolling(horizon).mean()
@@ -174,24 +174,20 @@ class STOCK():
             new_predictor += [avg_colS]
 
         self.prodictors += new_predictor
-
-     
-    def Forest_model(self, split, n_estimators=800, min_samples_split=70, random_state=1, depth=6, val=50):
+  
+    def Forest_model(self, split, n_estimators=800, min_samples_split=70, random_state=1, depth=6, val=25, target_day=1):
         from sklearn.ensemble import RandomForestClassifier
         model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, max_depth=depth, random_state=random_state)
         real_world = self.stock.iloc[:-(val)]
         train = real_world.iloc[:-(split)]
         test = real_world.iloc[-(split):]
-        model.fit(train[self.prodictors], train["target"])
+        model.fit(train[self.prodictors], train[f"target{target_day}"])
         # 
         from sklearn.metrics import precision_score, accuracy_score
         preds = model.predict(test[self.prodictors])
         preds = pd.Series(preds)
-        precision = precision_score(preds.values, test["target"].values, average='macro')
-        accuracy = accuracy_score(preds.values, test["target"].values)
-        # print('#########')
-        # print('preds\n', preds.values)
-        # print('test["target"]\n', test["target"].values)
+        precision = precision_score(preds.values, test[f"target{target_day}"].values, average='macro')
+        accuracy = accuracy_score(preds.values, test[f"target{target_day}"].values)
         print('######### train test #########')
         print(f'[+] precision {precision:.4f}\n[+] accuracy {accuracy:.4f}, \n')
         return {
@@ -220,7 +216,8 @@ class STOCK():
 # stock.add_Leverage()
 # stock.add_Margin()
 # stock.drop_Nan()
-# print(stock.stock)
+
+# print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])
 # model = stock.Forest_model(
 #     split=200, 
 #     n_estimators=200, 
