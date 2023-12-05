@@ -34,14 +34,14 @@ while(1):
     print(f"[*] train {stockid}.TW")
     stock = STOCK(stockid, year)
     stock.add_target_info()
-    
+
     stock.add_moving_average_info()
-    # stock.add_BBands_info()
-    # stock.add_Leverage()
-    # stock.add_Margin()
-    # stock.drop_Nan()
+    stock.add_BBands_info()
+    stock.add_Leverage()
+    stock.add_Margin()
+    stock.drop_Nan()
     print("[*] stock is setup!")
-    stock.stock.to_csv(f'./{stockid}from{year}.csv', index=True, sep=',', encoding='utf-8')
+    # stock.stock.to_csv(f'./{stockid}from{year}.csv', index=True, sep=',', encoding='utf-8')
     # target_day = input('what day you want to predict? (1,2,5,10) ')
     # model = stock.Forest_model(
     #     split=100, 
@@ -51,28 +51,11 @@ while(1):
     #     target_day=target_day
     # )['model']
 
-    # print("######### real test: #########")
-    # test_prodictors = stock.to_test(val=25)[stock.prodictors]
-    # groundtrue = stock.to_test(val=25)[f'target{target_day}'].values
-    # result_pro = model.predict_proba(test_prodictors)
-    # result = model.predict(test_prodictors)
-    # print('predict_pro:', result_pro[:,1].round(2))
-    # print('[+] predict:    ', result)
-    # print('[+] ground true:', groundtrue)
-
-    # from sklearn.metrics import precision_score, accuracy_score
-
-    # precision = precision_score(result, groundtrue, average='weighted')
-    # accuracy = accuracy_score(result, groundtrue)
-    # print( f'[+] precision: {precision*100}%',
-    #     f'\n[+] accuracy:  {accuracy*100}%', )
-    # print()
-
     from net import CNN_model
-    print(len(stock.stock[stock.prodictors].columns))
+    # print(stock.stock['target'].head(10))
     model =  CNN_model(
         stock.stock[stock.prodictors],        
-        stock.stock['change_value1']
+        stock.stock['target']
     )
 
     again = input('Do you want to try again? (Y/N)')
