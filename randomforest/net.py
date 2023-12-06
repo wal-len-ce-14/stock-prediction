@@ -79,7 +79,7 @@ from torch import float32
 def CNN_model(
         prodictor,
         target,
-        batch=16
+        batch=64
 ):
     print("[*] start train CNN")
     #create model
@@ -114,20 +114,23 @@ def CNN_model(
         with torch.no_grad():
             for idx, (path, now) in enumerate(testLoader):
                 path = path.to(float32).unsqueeze(1)
-                now = now.to(float32).unsqueeze(0)
-                print(path.shape, now.shape)
+                now = now.to(float32).unsqueeze(1)
                 pred = torch.sigmoid(model(path))
+                print(pred.shape, now.shape)
                 pred = torch.where(pred > 0.5, 1, 0)
                 
-                iflat = pred.contiguous().view(-1)
-                tflat = now.contiguous().view(-1)
-                print(f"now price = \n{(iflat[-10:]).to(int)}")
-                print(f"pred price = \n{tflat[-10:]}")
-                intersection = (iflat * tflat).sum()
-                dice = (2.0 * intersection + 1) / (iflat.sum() + tflat.sum() + 1)
-                acc = (iflat == tflat).sum() / now.numel()
-                print('[+] dice =', dice)
-                print('[+] acc =', acc)
+                # iflat = pred.contiguous().view(-1)
+                # tflat = now.contiguous().view(-1)
+                # print(f"now price = \n{(iflat)}")
+                # print(f"pred price = \n{tflat}")
+                # intersection = (iflat * tflat).sum()
+                # dice = (2.0 * intersection + 1) / (iflat.sum() + tflat.sum() + 1)
+                # acc = (iflat == tflat).sum() / now.numel()
+                # print('[+] dice =', dice)
+                print(f'now = \n{now.to(int).view(-1)}')
+                print(f'pred = \n{pred.view(-1)}')
+
+                # print('[+] acc =', acc)
                 print()
 
     print("[*] train end")

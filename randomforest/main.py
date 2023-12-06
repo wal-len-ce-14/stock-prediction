@@ -52,7 +52,6 @@ while(1):
     # )['model']
 
     from net import CNN_model
-    # print(stock.stock['target'].head(10))
     model =  CNN_model(
         stock.stock[stock.prodictors],        
         stock.stock['target']

@@ -6,8 +6,5 @@ scikit-learn
 joblib
 bs4
 yfinance
-time
-json
 datetime
-urllib
 torch
