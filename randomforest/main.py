@@ -54,7 +54,7 @@ while(1):
     from net import CNN_model
     model =  CNN_model(
         stock.stock[stock.prodictors],        
-        stock.stock['target']
+        stock.stock['target5']
     )
 
     again = input('Do you want to try again? (Y/N)')

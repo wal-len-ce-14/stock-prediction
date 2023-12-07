@@ -16,10 +16,13 @@ class Data(Dataset):
             else:
                 info += [self.all[i]]
 
-        return torch.tensor(info), torch.tensor(self.target[index])
+        target = torch.tensor(self.target[index])
+        # change !!!!
+        target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
+        return torch.tensor(info), target
 
 class CNN(nn.Module):
-    def __init__(self, input=1, output=1, feature=16):
+    def __init__(self, input=1, output=2, feature=16):
         super(CNN, self).__init__()
         # input output channel
         self.input = input  
@@ -42,6 +45,7 @@ class CNN(nn.Module):
         self.normal16 = nn.BatchNorm2d(16)
         self.normal64 = nn.BatchNorm2d(64)
         self.normal128 = nn.BatchNorm2d(128)
+        self.d1normal = nn.BatchNorm1d(128)
         self.drop = nn.Dropout(0.1)
 
     def forward(self, x):
@@ -49,27 +53,31 @@ class CNN(nn.Module):
         # print('0',output.shape)
         output = self.x3init(output)    # ch = 16
         # print('1',output)
-        for i in range(0,1):
+        for i in range(0,4):
             output = self.x3conv16to16(output)
-        # output = self.normal16(output)
+        output = self.normal16(output)
+        output = self.relu(output)
         output = self.x3conv16to64(output)
         output = self.maxpool(output)
         # print('2',output)
-        for i in range(0,1):
+        for i in range(0,6):
             output = self.x3conv64to64(output)
-            # output = self.normal64(output)
+            output = self.normal64(output)
+            output = self.relu(output)
         output = self.x3conv64to128(output)
         output = self.maxpool(output)
         # print('3',output)
-        for i in range(0,1):
+        for i in range(0,6):
             output = self.x3conv128to128(output)
-            # output = self.normal128(output)
+            output = self.normal128(output)
+            output = self.relu(output)
         output = self.fc_pool(output)
         output = output.reshape(output.shape[0], -1)
         output = self.linear128to128(output)
         output = self.drop(self.relu(self.linear128to128(output)))
         output = self.relu(self.linear128to128(output))
-        output = (self.linear128toout(output))
+        output = self.d1normal(output)
+        output = self.relu(self.linear128toout(output))
         return output
     
 import torch.optim as optim
@@ -90,8 +98,9 @@ def CNN_model(
     trainLoader = DataLoader(traindata, batch, shuffle=True, drop_last=True)
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
-    optimizer = optim.Adam(model.parameters(), lr=0.00001)
-    loss_f = nn.MSELoss()
+    # change !!!!
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    loss_f = nn.BCELoss()
 
     # train 
     for epoch in range(0, 20):
@@ -100,24 +109,26 @@ def CNN_model(
         ## training
         for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
             path = path.to(float32).unsqueeze(1)
-            now = now.to(float32).unsqueeze(1)
-            pred = model(path)
+            now = now.to(float32)
+            pred = torch.sigmoid(model(path))
+            # target = torch.where(now > 0.5, torch.tensor([1,0], dtype=float32), torch.tensor([0,1], dtype=float32))
             loss = loss_f(pred, now)
             epoch_loss += loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
-        print(f"[+] epoch loss = {epoch_loss/idx}")
+        print(f"[+] epoch loss = {epoch_loss/idx+1}")
         # check acc
         print("[*] check accurracy")
         with torch.no_grad():
             for idx, (path, now) in enumerate(testLoader):
                 path = path.to(float32).unsqueeze(1)
-                now = now.to(float32).unsqueeze(1)
+                now = now.to(float32)
+                # target = torch.where(now > 0.5, torch.tensor([1,0], dtype=float32), torch.tensor([0,1], dtype=float32))
                 pred = torch.sigmoid(model(path))
-                print(pred.shape, now.shape)
-                pred = torch.where(pred > 0.5, 1, 0)
+                # print(f'pred = \n{pred.view(-1)}')
+                pred = torch.where(pred > 0.501, 1, 0)
                 
                 # iflat = pred.contiguous().view(-1)
                 # tflat = now.contiguous().view(-1)
@@ -127,10 +138,12 @@ def CNN_model(
                 # dice = (2.0 * intersection + 1) / (iflat.sum() + tflat.sum() + 1)
                 # acc = (iflat == tflat).sum() / now.numel()
                 # print('[+] dice =', dice)
-                print(f'now = \n{now.to(int).view(-1)}')
-                print(f'pred = \n{pred.view(-1)}')
 
-                # print('[+] acc =', acc)
+                # print(f'now = \n{now.to(int)}')
+                # print(f'pred = \n{pred}')
+                from sklearn.metrics import accuracy_score
+                acc = accuracy_score(pred, now)
+                print(f'[+] acc = {round(acc*100, 2)}%', )
                 print()
 
     print("[*] train end")

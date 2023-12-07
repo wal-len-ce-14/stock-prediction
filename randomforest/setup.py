@@ -145,7 +145,7 @@ class STOCK():
         from scraping import get_juridical_person as get
         Leverage = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, Leverage, on='date', how='inner')
-        horizons_sum = [1,3,5,10,20,40,60,120,240]
+        horizons_sum = [1,3,5,10,20,40,60,120]
         new_predictor = []
         for horizon in horizons_sum:
             for lever in ['Foreign_Investor','Investment_Trust','Dealer_self','Dealer_Hedging']:
