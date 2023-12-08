@@ -5,8 +5,5 @@ from urllib import parse
 #     print(i)
 
 
-from sklearn.metrics import precision_score, accuracy_score
-a = [1,0,1,1,1,0,1]
-b = [1,0,1,1,1,0,0]
-print(precision_score(a,b))
-print(accuracy_score(a,b))
+for i in range(10,1):
+    print(i)

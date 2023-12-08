@@ -16,7 +16,7 @@ class Data(Dataset):
             else:
                 info += [self.all[i]]
 
-        target = torch.tensor(self.target[index])
+        target = torch.tensor(self.target[index+self.all.shape[1]-1])
         # change !!!!
         target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
         return torch.tensor(info), target
@@ -55,7 +55,7 @@ class CNN(nn.Module):
         # print('1',output)
         for i in range(0,4):
             output = self.x3conv16to16(output)
-        output = self.normal16(output)
+        # output = self.normal16(output)
         output = self.relu(output)
         output = self.x3conv16to64(output)
         output = self.maxpool(output)
@@ -67,7 +67,7 @@ class CNN(nn.Module):
         output = self.x3conv64to128(output)
         output = self.maxpool(output)
         # print('3',output)
-        for i in range(0,6):
+        for i in range(0,7):
             output = self.x3conv128to128(output)
             output = self.normal128(output)
             output = self.relu(output)
@@ -87,11 +87,20 @@ from torch import float32
 def CNN_model(
         prodictor,
         target,
+        if_load='',
         batch=64
 ):
-    print("[*] start train CNN")
     #create model
-    model = CNN(feature=len(prodictor.columns))
+    if if_load != '':
+        try:
+            model = torch.load(if_load)
+            print(f'Load model from {if_load}')
+        except Exception as e:
+            print(e)
+    else:
+        model = CNN(feature=len(prodictor.columns))
+    print("[*] start train CNN")
+    
     # dataset
     data = Data(prodictor.values, target.values) # .values
     traindata, testdata = random_split(data, [int(len(data)*0.9), len(data)-int(len(data)*0.9)])
@@ -99,7 +108,7 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
     loss_f = nn.BCELoss()
 
     # train 
@@ -118,10 +127,12 @@ def CNN_model(
             loss.backward()
             optimizer.step()
             print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
-        print(f"[+] epoch loss = {epoch_loss/idx+1}")
+        print(f"[+] epoch loss = {epoch_loss/len(trainLoader)}")
         # check acc
         print("[*] check accurracy")
         with torch.no_grad():
+            best = 0
+            acc_all = 0
             for idx, (path, now) in enumerate(testLoader):
                 path = path.to(float32).unsqueeze(1)
                 now = now.to(float32)
@@ -143,16 +154,21 @@ def CNN_model(
                 # print(f'pred = \n{pred}')
                 from sklearn.metrics import accuracy_score
                 acc = accuracy_score(pred, now)
+                acc_all += acc
                 print(f'[+] acc = {round(acc*100, 2)}%', )
-                print()
+            if acc_all/len(testLoader) > best:
+                print('save this model!!')
+                best = acc_all/len(testLoader)
+                torch.save(model, f'./randomforest/model/model1.pth')
+            print()
 
     print("[*] train end")
     return model
                 
 
-x = torch.randn(10,1,16,16)
-print('in', x.shape)
+# x = torch.randn(10,1,16,16)
+# print('in', x.shape)
 
-model = CNN()
-print('m',model(x).shape)
+# model = CNN()
+# print('m',model(x).shape)
 

@@ -13,6 +13,7 @@ all = {}
 warnings.filterwarnings("ignore", category=PerformanceWarning)
 # for id in [
 #     2330, #2330台積電
+#     2303, #2303聯電
 #     2344, #2344華邦電
 #     2301, #2301光寶科
 #     2303, #2303聯電
@@ -54,7 +55,8 @@ while(1):
     from net import CNN_model
     model =  CNN_model(
         stock.stock[stock.prodictors],        
-        stock.stock['target5']
+        stock.stock['target5'],
+        './randomforest/model/model1.pth'
     )
 
     again = input('Do you want to try again? (Y/N)')
