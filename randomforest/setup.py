@@ -208,8 +208,8 @@ class STOCK():
     def predict_tomorrow(self):
         return self.preserve[self.prodictors]
     def get(self):
-        print(self.prodictors)
-        return self.preserve.loc[:len(self.prodictors),self.prodictors]
+        print(self.preserve.loc[self.stock.index[-10:],self.prodictors])
+        return self.preserve.loc[self.stock.index[-10:],self.prodictors]
 
 
 stock = STOCK(2329, 2023,2023)
@@ -220,7 +220,6 @@ stock.add_target_info()
 # stock.add_Leverage()
 # stock.add_Margin()
 stock.drop_Nan()
-print(stock.prodictors)
 stock.get()
 # print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])
 # model = stock.Forest_model(
