@@ -76,7 +76,7 @@ class CNN(nn.Module):
         output = self.linear128to128(output)
         output = self.drop(self.relu(self.linear128to128(output)))
         output = self.relu(self.linear128to128(output))
-        output = self.d1normal(output)
+        # output = self.d1normal(output)
         output = self.relu(self.linear128toout(output))
         return output
     
@@ -140,18 +140,7 @@ def CNN_model(
                 pred = torch.sigmoid(model(path))
                 # print(f'pred = \n{pred.view(-1)}')
                 pred = torch.where(pred > 0.501, 1, 0)
-                
-                # iflat = pred.contiguous().view(-1)
-                # tflat = now.contiguous().view(-1)
-                # print(f"now price = \n{(iflat)}")
-                # print(f"pred price = \n{tflat}")
-                # intersection = (iflat * tflat).sum()
-                # dice = (2.0 * intersection + 1) / (iflat.sum() + tflat.sum() + 1)
-                # acc = (iflat == tflat).sum() / now.numel()
-                # print('[+] dice =', dice)
 
-                # print(f'now = \n{now.to(int)}')
-                # print(f'pred = \n{pred}')
                 from sklearn.metrics import accuracy_score
                 acc = accuracy_score(pred, now)
                 acc_all += acc
@@ -164,7 +153,14 @@ def CNN_model(
 
     print("[*] train end")
     return model
-                
+
+def usemodel(model_path, stock, bias=0):
+    model = torch.load(model_path)
+    print(stock.get().values)
+    print(torch.tensor(stock.get().values))
+    result = torch.sigmoid(model(torch.tensor(stock.get().values, dtype=float32).unsqueeze(0).unsqueeze(0)))
+    result = torch.where(result > 0.5001, 1, 0)
+    print(result)
 
 # x = torch.randn(10,1,16,16)
 # print('in', x.shape)

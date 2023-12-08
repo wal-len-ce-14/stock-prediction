@@ -52,12 +52,15 @@ while(1):
     #     target_day=target_day
     # )['model']
 
-    from net import CNN_model
-    model =  CNN_model(
-        stock.stock[stock.prodictors],        
-        stock.stock['target5'],
-        './randomforest/model/model1.pth'
-    )
+    from net import CNN_model, usemodel
+    # model =  CNN_model(
+    #     stock.stock[stock.prodictors],        
+    #     stock.stock['target5'],
+    #     './randomforest/model/model1.pth'
+    # )
+    usemodel('./randomforest/model/model1.pth', stock)
+    
+
 
     again = input('Do you want to try again? (Y/N)')
     if again != 'Y':

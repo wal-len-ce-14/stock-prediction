@@ -203,24 +203,23 @@ class STOCK():
           
     def to_test(self, val=10):  # 回傳從未train過的test資料
         # print(self.real_world)
-        return self.stock[-(val):]
+        return self.stock[-(val):] 
 
     def predict_tomorrow(self):
         return self.preserve[self.prodictors]
-    def get(self):
-        print(self.preserve.loc[self.stock.index[-10:],self.prodictors])
-        return self.preserve.loc[self.stock.index[-10:],self.prodictors]
+    def get(self, bias=0):
+        return self.preserve.loc[self.stock.index[-len(self.prodictors):],self.prodictors]
 
 
-stock = STOCK(2329, 2023,2023)
+# stock = STOCK(2329, 2022,2023)
 
-stock.add_target_info()
+# stock.add_target_info()
 # stock.add_moving_average_info()
 # stock.add_BBands_info()
 # stock.add_Leverage()
 # stock.add_Margin()
-stock.drop_Nan()
-stock.get()
+# stock.drop_Nan()
+# stock.get()
 # print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])
 # model = stock.Forest_model(
 #     split=200, 
