@@ -1,13 +1,27 @@
 import tkinter as tk
 import threading as thread
+import numpy as np
 
 window = tk.Tk()
 window.title("決策支援")
 window.geometry('480x300')
 
 def deter():
-    
-    if stcok_E.get() != '':
+    from net import usemodel
+    from setup import STOCK
+    stockid = int(stcok_E.get())
+    print(f"[*] get {stockid}.TW")
+    stock = STOCK(stockid, 2023)
+    stock.add_target_info()
+    stock.add_moving_average_info()
+    stock.add_BBands_info()
+    stock.add_Leverage()
+    stock.add_Margin()
+    stock.drop_Nan()
+    print("[*] stock is setup!")
+    result, _, _ = usemodel('./randomforest/model/model1.pth', stock, 1) # 2
+    print(result)
+    if np.array_equal(result,np.array([[1,0]])):
         ans = tk.Label(text="可以", font=('Arial',15,'bold'))
         ans.grid(column=1, row=4, pady=12, ipadx=50, columnspan=1)
     else:

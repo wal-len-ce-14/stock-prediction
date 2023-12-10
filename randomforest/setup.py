@@ -206,12 +206,14 @@ class STOCK():
         return self.stock[-(val):] 
 
     def predict_tomorrow(self):
-        return self.preserve[self.prodictors]
+        return self.preserve.index[-1]
     def get(self, bias=0):
-        return self.preserve.loc[self.stock.index[-len(self.prodictors):],self.prodictors]
+        if bias == 0:
+            return self.preserve.loc[self.preserve.index[-len(self.prodictors):],self.prodictors], self.preserve.index[-1], self.preserve.loc[self.preserve.index[-1], 'target5']
+        elif bias > 0:
+            return self.preserve.loc[self.preserve.index[-len(self.prodictors)-bias:-bias],self.prodictors], self.preserve.index[-1-bias], self.preserve.loc[self.preserve.index[-1-bias], 'target5']
 
-
-# stock = STOCK(2329, 2022,2023)
+# stock = STOCK(2330, 2023,2023)
 
 # stock.add_target_info()
 # stock.add_moving_average_info()
@@ -219,7 +221,8 @@ class STOCK():
 # stock.add_Leverage()
 # stock.add_Margin()
 # stock.drop_Nan()
-# stock.get()
+# print(stock.get(bias=1))
+# print(stock.stock)
 # print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])
 # model = stock.Forest_model(
 #     split=200, 

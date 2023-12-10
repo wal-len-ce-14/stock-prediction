@@ -53,24 +53,33 @@ class CNN(nn.Module):
         # print('0',output.shape)
         output = self.x3init(output)    # ch = 16
         # print('1',output)
+        res = output
         for i in range(0,4):
             output = self.x3conv16to16(output)
-        # output = self.normal16(output)
+        output = self.normal16(output)
         output = self.relu(output)
+        output = torch.cat([output, res], dim=1)
+        output = nn.Conv2d(32,16,3,1,1)(output)
         output = self.x3conv16to64(output)
         output = self.maxpool(output)
-        # print('2',output)
+
+        res = output
         for i in range(0,6):
             output = self.x3conv64to64(output)
             output = self.normal64(output)
             output = self.relu(output)
+        output = torch.cat([output, res], dim=1)
+        output = nn.Conv2d(128,64,3,1,1)(output)
         output = self.x3conv64to128(output)
         output = self.maxpool(output)
         # print('3',output)
+        res = output
         for i in range(0,7):
             output = self.x3conv128to128(output)
             output = self.normal128(output)
             output = self.relu(output)
+        output = torch.cat([output, res], dim=1)
+        output = nn.Conv2d(256,128,3,1,1)(output)
         output = self.fc_pool(output)
         output = output.reshape(output.shape[0], -1)
         output = self.linear128to128(output)
@@ -88,8 +97,9 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=64
+        batch=32
 ):
+    best = 0
     #create model
     if if_load != '':
         try:
@@ -108,19 +118,19 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=5e-4)
     loss_f = nn.BCELoss()
+    loss_f = nn.CrossEntropyLoss()
 
     # train 
-    for epoch in range(0, 20):
+    for epoch in range(0, 40):
         epoch_loss = 0
         print(f"[*] epoch {epoch+1}")
         ## training
         for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
             path = path.to(float32).unsqueeze(1)
             now = now.to(float32)
-            pred = torch.sigmoid(model(path))
-            # target = torch.where(now > 0.5, torch.tensor([1,0], dtype=float32), torch.tensor([0,1], dtype=float32))
+            pred = model(path)
             loss = loss_f(pred, now)
             epoch_loss += loss
             optimizer.zero_grad()
@@ -131,20 +141,22 @@ def CNN_model(
         # check acc
         print("[*] check accurracy")
         with torch.no_grad():
-            best = 0
+            
             acc_all = 0
             for idx, (path, now) in enumerate(testLoader):
                 path = path.to(float32).unsqueeze(1)
                 now = now.to(float32)
-                # target = torch.where(now > 0.5, torch.tensor([1,0], dtype=float32), torch.tensor([0,1], dtype=float32))
                 pred = torch.sigmoid(model(path))
-                # print(f'pred = \n{pred.view(-1)}')
+                
                 pred = torch.where(pred > 0.501, 1, 0)
+                print(f'pred = \n{pred[-10:]}\nnow = \n{now[-10:].to(int)}')
 
                 from sklearn.metrics import accuracy_score
                 acc = accuracy_score(pred, now)
                 acc_all += acc
                 print(f'[+] acc = {round(acc*100, 2)}%', )
+                
+            print(f'acc_all = {(acc_all/len(testLoader))*100}%')
             if acc_all/len(testLoader) > best:
                 print('save this model!!')
                 best = acc_all/len(testLoader)
@@ -156,11 +168,12 @@ def CNN_model(
 
 def usemodel(model_path, stock, bias=0):
     model = torch.load(model_path)
-    print(stock.get().values)
-    print(torch.tensor(stock.get().values))
-    result = torch.sigmoid(model(torch.tensor(stock.get().values, dtype=float32).unsqueeze(0).unsqueeze(0)))
-    result = torch.where(result > 0.5001, 1, 0)
-    print(result)
+    prodictor, date, ups_or_downs = stock.get(bias)
+    # print(prodictor)
+    result = torch.sigmoid(model(torch.tensor(prodictor.values, dtype=float32).unsqueeze(0).unsqueeze(0)))
+    result = torch.where(result > 0.501, 1, 0)
+    print(result, date, ups_or_downs)
+    return result.numpy(), date, ups_or_downs
 
 # x = torch.randn(10,1,16,16)
 # print('in', x.shape)
