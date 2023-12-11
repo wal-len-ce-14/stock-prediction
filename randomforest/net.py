@@ -58,8 +58,8 @@ class CNN(nn.Module):
             output = self.x3conv16to16(output)
         output = self.normal16(output)
         output = self.relu(output)
-        output = torch.cat([output, res], dim=1)
-        output = nn.Conv2d(32,16,3,1,1)(output)
+        # output = torch.cat([output, res], dim=1)
+        # output = nn.Conv2d(32,16,3,1,1)(output)
         output = self.x3conv16to64(output)
         output = self.maxpool(output)
 
@@ -68,8 +68,8 @@ class CNN(nn.Module):
             output = self.x3conv64to64(output)
             output = self.normal64(output)
             output = self.relu(output)
-        output = torch.cat([output, res], dim=1)
-        output = nn.Conv2d(128,64,3,1,1)(output)
+        # output = torch.cat([output, res], dim=1)
+        # output = nn.Conv2d(128,64,3,1,1)(output)
         output = self.x3conv64to128(output)
         output = self.maxpool(output)
         # print('3',output)
@@ -78,14 +78,12 @@ class CNN(nn.Module):
             output = self.x3conv128to128(output)
             output = self.normal128(output)
             output = self.relu(output)
-        output = torch.cat([output, res], dim=1)
-        output = nn.Conv2d(256,128,3,1,1)(output)
         output = self.fc_pool(output)
         output = output.reshape(output.shape[0], -1)
         output = self.linear128to128(output)
         output = self.drop(self.relu(self.linear128to128(output)))
         output = self.relu(self.linear128to128(output))
-        # output = self.d1normal(output)
+        output = self.d1normal(output)
         output = self.relu(self.linear128toout(output))
         return output
     
@@ -97,7 +95,7 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=32
+        batch=64
 ):
     best = 0
     #create model
@@ -118,19 +116,19 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=5e-4)
+    optimizer = optim.Adam(model.parameters(), lr=2e-4)
     loss_f = nn.BCELoss()
-    loss_f = nn.CrossEntropyLoss()
+    # loss_f = nn.CrossEntropyLoss()
 
     # train 
-    for epoch in range(0, 40):
+    for epoch in range(0, 60):
         epoch_loss = 0
         print(f"[*] epoch {epoch+1}")
         ## training
         for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
             path = path.to(float32).unsqueeze(1)
             now = now.to(float32)
-            pred = model(path)
+            pred = torch.sigmoid(model(path))
             loss = loss_f(pred, now)
             epoch_loss += loss
             optimizer.zero_grad()
