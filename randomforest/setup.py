@@ -222,7 +222,9 @@ class STOCK():
 # stock.add_Margin()
 # stock.drop_Nan()
 # print(stock.get(bias=1))
-# print(stock.stock)
+# print(stock.stock['change_value5'][:20].shape[0])
+# print(stock.stock['change_value5'][:20].values.shape[0])
+# print(stock.stock['change_value5'][:20].values)
 # print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])
 # model = stock.Forest_model(
 #     split=200, 
