@@ -55,8 +55,13 @@ while(1):
     from net import CNN_model, usemodel
     model =  CNN_model(
         stock.stock[stock.prodictors],        
+<<<<<<< HEAD
         stock.stock['target5'],
         ''
+=======
+        stock.stock['change_value5']*100,
+        # './randomforest/model/model1.pth'
+>>>>>>> origin/main
     )
     # for i in range(0,20):
     #     usemodel('./randomforest/model/model1.pth', stock, i)

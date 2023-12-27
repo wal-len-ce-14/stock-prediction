@@ -17,12 +17,13 @@ class Data(Dataset):
                 info += [self.all[i]]
 
         target = torch.tensor(self.target[index+self.all.shape[1]-1])
+        # print(target)
         # change !!!!
-        target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
+        # target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
         return torch.tensor(info), target
 
 class CNN(nn.Module):
-    def __init__(self, input=1, output=2, feature=16):
+    def __init__(self, input=1, output=1, feature=16):
         super(CNN, self).__init__()
         # input output channel
         self.input = input  
@@ -82,9 +83,9 @@ class CNN(nn.Module):
         output = output.reshape(output.shape[0], -1)
         output = self.linear128to128(output)
         output = self.drop(self.relu(self.linear128to128(output)))
-        output = self.relu(self.linear128to128(output))
-        output = self.d1normal(output)
-        output = self.relu(self.linear128toout(output))
+        output = self.linear128to128(output)
+        # output = self.d1normal(output)
+        output = self.linear128toout(output)
         return output
     
 import torch.optim as optim
@@ -118,7 +119,8 @@ def CNN_model(
     # opt, loss
     # change !!!!
     optimizer = optim.Adam(model.parameters(), lr=2e-4)
-    loss_f = nn.BCELoss()
+    loss_f = nn.MSELoss()
+    # loss_f = nn.BCELoss()
     # loss_f = nn.CrossEntropyLoss()
 
     # train 
@@ -127,9 +129,16 @@ def CNN_model(
         print(f"[*] epoch {epoch+1}")
         ## training
         for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
+<<<<<<< HEAD
             path = path.to(float32).unsqueeze(1).to(device=device)
             now = now.to(float32).to(device=device)
             pred = torch.sigmoid(model(path))
+=======
+            path = path.to(float32).unsqueeze(1)
+            now = now.to(float32)
+            # print(now[10:])
+            pred = model(path)
+>>>>>>> origin/main
             loss = loss_f(pred, now)
             epoch_loss += loss
             optimizer.zero_grad()
@@ -143,23 +152,30 @@ def CNN_model(
             
             acc_all = 0
             for idx, (path, now) in enumerate(testLoader):
+<<<<<<< HEAD
                 path = path.to(float32).unsqueeze(1).to(device=device)
                 now = now.to(float32).to(device=device)
                 pred = torch.sigmoid(model(path))
+=======
+                path = path.to(float32).unsqueeze(1)
+                now = now.to(float32).unsqueeze(1)
+                pred = model(path)
+>>>>>>> origin/main
                 
-                pred = torch.where(pred > 0.501, 1, 0)
-                print(f'pred = \n{pred[-10:]}\nnow = \n{now[-10:].to(int)}')
+                # pred = torch.where(pred > 0.501, 1, 0)
+                print(f'pred = \n{pred[-10:]}\nnow = \n{now[-10:]}')
 
                 from sklearn.metrics import accuracy_score
-                acc = accuracy_score(pred, now)
-                acc_all += acc
-                print(f'[+] acc = {round(acc*100, 2)}%', )
+                loss = loss_f(now, pred)
+                # acc = accuracy_score(pred, now)
+                # acc_all += acc
+                print(f'loss = {loss}')
                 
-            print(f'acc_all = {(acc_all/len(testLoader))*100}%')
+            # print(f'acc_all = {(acc_all/len(testLoader))*100}%')
             if acc_all/len(testLoader) > best:
                 print('save this model!!')
                 best = acc_all/len(testLoader)
-                torch.save(model, f'./randomforest/model/model1.pth')
+                torch.save(model, f'./randomforest/model/model.pth')
             print()
 
     print("[*] train end")
