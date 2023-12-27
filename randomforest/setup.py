@@ -22,7 +22,7 @@ def get_stock_history(stockid, start_year, end_year):
         stock = tws.Stock(f"{stockid}")
         for year in range(start_year, end_year+1):
             print(f"[+] get stock info from {year} ...")
-            time.sleep(0.1)
+            time.sleep(0.2)
             for month in range(1, 13):
                 stock_infos = stock.fetch(year,month)
                 for idx, stock_info in enumerate(stock_infos):

@@ -41,49 +41,54 @@ class CNN(nn.Module):
         self.x3conv64to128 = nn.Conv2d(64,128,3,1,1, bias=False)
         self.x3conv128to128 = nn.Conv2d(128,128,3,1,1, bias=False)
         self.relu = nn.ReLU(inplace=True)
+        self.f_Neurons = nn.Linear(self.size*self.size, self.size*self.size)
+        self.linearNto128 = nn.Linear(self.size*self.size, 128)
         self.linear128to128 = nn.Linear(128, 128)
         self.linear128toout = nn.Linear(128, self.output)
         self.normal16 = nn.BatchNorm2d(16)
         self.normal64 = nn.BatchNorm2d(64)
         self.normal128 = nn.BatchNorm2d(128)
         self.d1normal = nn.BatchNorm1d(128)
-        self.drop = nn.Dropout(0.1)
+        # self.drop = nn.Dropout(0.1)
 
     def forward(self, x):
-        output = self.x1init(x)
-        # print('0',output.shape)
-        output = self.x3init(output)    # ch = 16
-        # print('1',output)
-        res = output
-        for i in range(0,4):
-            output = self.x3conv16to16(output)
-        output = self.normal16(output)
-        output = self.relu(output)
-        # output = torch.cat([output, res], dim=1)
-        # output = nn.Conv2d(32,16,3,1,1)(output)
-        output = self.x3conv16to64(output)
-        output = self.maxpool(output)
+        # output = self.x1init(x)
+        # # print('0',output.shape)
+        # output = self.x3init(output)    # ch = 16
+        # # print('1',output)
+        # res = output
+        # for i in range(0,6):
+        #     output = self.x3conv16to16(output)
+        # output = self.normal16(output)
+        # output = self.relu(output)
+        # # output = torch.cat([output, res], dim=1)
+        # # output = nn.Conv2d(32,16,3,1,1)(output)
+        # output = self.x3conv16to64(output)
+        # output = self.maxpool(output)
 
-        res = output
-        for i in range(0,6):
-            output = self.x3conv64to64(output)
-            output = self.normal64(output)
-            output = self.relu(output)
-        # output = torch.cat([output, res], dim=1)
-        # output = nn.Conv2d(128,64,3,1,1)(output)
-        output = self.x3conv64to128(output)
-        output = self.maxpool(output)
-        # print('3',output)
-        res = output
-        for i in range(0,7):
-            output = self.x3conv128to128(output)
-            output = self.normal128(output)
-            output = self.relu(output)
-        output = self.fc_pool(output)
-        output = output.reshape(output.shape[0], -1)
-        output = self.linear128to128(output)
-        output = self.drop(self.relu(self.linear128to128(output)))
-        output = self.linear128to128(output)
+        # res = output
+        # for i in range(0,6):
+        #     output = self.x3conv64to64(output)
+        #     output = self.normal64(output)
+        #     output = self.relu(output)
+        # # output = torch.cat([output, res], dim=1)
+        # # output = nn.Conv2d(128,64,3,1,1)(output)
+        # output = self.x3conv64to128(output)
+        # output = self.maxpool(output)
+        # # print('3',output)
+        # res = output
+        # for i in range(0,7):
+        #     output = self.x3conv128to128(output)
+        #     output = self.normal128(output)
+        #     output = self.relu(output)
+        # output = self.fc_pool(output)
+        # output = output.reshape(output.shape[0], -1)
+        output = nn.Flatten()(x)
+        for i in range(0,4):
+            output = self.f_Neurons(output)
+        output = self.linearNto128(output)
+        for i in range(0,4):
+            output = self.linear128to128(output)
         # output = self.d1normal(output)
         output = self.linear128toout(output)
         return output
@@ -96,9 +101,10 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=64
+        batch=128
 ):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    # device = 'cpu'
     best = 0
     #create model
     if if_load != '':
@@ -118,7 +124,7 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=2e-4)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
     loss_f = nn.MSELoss()
     # loss_f = nn.BCELoss()
     # loss_f = nn.CrossEntropyLoss()
@@ -129,16 +135,10 @@ def CNN_model(
         print(f"[*] epoch {epoch+1}")
         ## training
         for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
-<<<<<<< HEAD
             path = path.to(float32).unsqueeze(1).to(device=device)
             now = now.to(float32).to(device=device)
-            pred = torch.sigmoid(model(path))
-=======
-            path = path.to(float32).unsqueeze(1)
-            now = now.to(float32)
             # print(now[10:])
             pred = model(path)
->>>>>>> origin/main
             loss = loss_f(pred, now)
             epoch_loss += loss
             optimizer.zero_grad()
@@ -152,15 +152,9 @@ def CNN_model(
             
             acc_all = 0
             for idx, (path, now) in enumerate(testLoader):
-<<<<<<< HEAD
                 path = path.to(float32).unsqueeze(1).to(device=device)
-                now = now.to(float32).to(device=device)
-                pred = torch.sigmoid(model(path))
-=======
-                path = path.to(float32).unsqueeze(1)
-                now = now.to(float32).unsqueeze(1)
+                now = now.to(float32).unsqueeze(1).to(device=device)
                 pred = model(path)
->>>>>>> origin/main
                 
                 # pred = torch.where(pred > 0.501, 1, 0)
                 print(f'pred = \n{pred[-10:]}\nnow = \n{now[-10:]}')
