@@ -97,6 +97,7 @@ def CNN_model(
         if_load='',
         batch=64
 ):
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     best = 0
     #create model
     if if_load != '':
@@ -106,7 +107,7 @@ def CNN_model(
         except Exception as e:
             print(e)
     else:
-        model = CNN(feature=len(prodictor.columns))
+        model = CNN(feature=len(prodictor.columns)).to(device=device)
     print("[*] start train CNN")
     
     # dataset
@@ -126,8 +127,8 @@ def CNN_model(
         print(f"[*] epoch {epoch+1}")
         ## training
         for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
-            path = path.to(float32).unsqueeze(1)
-            now = now.to(float32)
+            path = path.to(float32).unsqueeze(1).to(device=device)
+            now = now.to(float32).to(device=device)
             pred = torch.sigmoid(model(path))
             loss = loss_f(pred, now)
             epoch_loss += loss
@@ -142,8 +143,8 @@ def CNN_model(
             
             acc_all = 0
             for idx, (path, now) in enumerate(testLoader):
-                path = path.to(float32).unsqueeze(1)
-                now = now.to(float32)
+                path = path.to(float32).unsqueeze(1).to(device=device)
+                now = now.to(float32).to(device=device)
                 pred = torch.sigmoid(model(path))
                 
                 pred = torch.where(pred > 0.501, 1, 0)

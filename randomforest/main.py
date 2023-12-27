@@ -56,7 +56,7 @@ while(1):
     model =  CNN_model(
         stock.stock[stock.prodictors],        
         stock.stock['target5'],
-        './randomforest/model/model1.pth'
+        ''
     )
     # for i in range(0,20):
     #     usemodel('./randomforest/model/model1.pth', stock, i)
