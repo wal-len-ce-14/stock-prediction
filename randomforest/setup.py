@@ -73,7 +73,7 @@ class STOCK():
         #     return -2
         # elif (row[f'change_value{day}']) < -0.02: 
         #     return -1
-        if (row[f'change_value{day}']) > 0.0001:
+        if (row[f'change_value{day}']) > 0.001:
             return 1
         else:
             return 0
