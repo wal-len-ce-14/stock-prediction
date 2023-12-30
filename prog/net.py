@@ -58,23 +58,19 @@ class CNN(nn.Module):
         output = self.x1init(x)         # ch = 4
         output = self.relu(self.x1conv4to4(output))
         output = self.relu(self.x1conv4to4(output))
-        output = self.relu(self.x1conv4to4(output))
         output = self.x3init(output)    # ch = 8
-        output = self.relu(self.x3conv8to8(output))
         output = self.relu(self.x3conv8to8(output))
         output = self.relu(self.x3conv8to8(output))
 
         output = nn.Flatten()(output)
         output = self.init_Neurons(output)
-        for i in range(0,2):
+        # 2,4 2,5
+        for i in range(0,2):  
             output = self.relu(self.f_Neurons(output))
-            # if(output.shape[0]):
-            #     output = self.d1normal(output)
         output = self.linearNto128(output)
-        for i in range(0,4):
+        for i in range(0,5):
             output = self.drop(self.relu(self.linear128to128(output)))
-            # output = self.d1normal(output)
-        # output = self.d1normal(output)
+
         output = self.linear128toout(output)
         return output
     
@@ -119,10 +115,10 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=0.00001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
     # loss_f = nn.MSELoss()
-    loss_f = nn.BCELoss()
-    # loss_f = nn.CrossEntropyLoss()
+    # loss_f = nn.BCELoss()
+    loss_f = nn.CrossEntropyLoss()
     loss_plot = []
     test_loss = []
     acc_plot = []
@@ -155,13 +151,10 @@ def CNN_model(
                 path = path.to(float32).unsqueeze(1).to(device=device)
                 now = now.to(float32).to(device=device)
                 pred = torch.sigmoid(model(path))
-                loss = loss_f(pred, now)
-                all_loss += loss
-                
-                # print(f'pred = \n{pred[-10:].to(int)}\nnow = \n{now[-10:].to(int)}')
 
                 from sklearn.metrics import accuracy_score
-                
+                loss = loss_f(pred, now)
+                all_loss += loss
                 pred = torch.where(pred > 0.501, 1., 0.)
                 acc = accuracy_score(pred.to('cpu'), now.to('cpu'))
                 acc_all += acc
