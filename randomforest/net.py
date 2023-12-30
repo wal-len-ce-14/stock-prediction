@@ -104,7 +104,7 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=64
+        batch=40
 ):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     # device = 'cpu'
@@ -127,7 +127,7 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=0.00002)
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
     # loss_f = nn.MSELoss()
     # loss_f = nn.BCELoss()
     loss_f = nn.CrossEntropyLoss()
@@ -172,10 +172,10 @@ def CNN_model(
                 
             print(f'[+] acc_all = {(acc_all/len(testLoader))*100}%')
             print(f'[+] all_loss = {(all_loss/len(testLoader))}')
-            if acc_all/len(testLoader) > best:
+            if round(acc_all/len(testLoader), 0) > best:
                 print('save this model!!')
                 best = acc_all/len(testLoader)
-                torch.save(model, f'./randomforest/model/model{epoch}e{best*100}%.pth')
+                torch.save(model, f'./randomforest/model/e{epoch}_{round(best*100, 2)}%.pth')
             print()
 
     print("[*] train end")
