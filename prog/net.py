@@ -133,10 +133,9 @@ def CNN_model(
         print(f"[*] epoch {epoch+1}")
         ## training
         from tqdm import tqdm
-        for idx, (path, now) in tqdm(enumerate(trainLoader), total=len(trainLoader)):  # path 過去資料 now 現在要預測的
+        for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
             path = path.to(float32).unsqueeze(1).to(device=device)
             now = now.to(float32).to(device=device)
-            # print(now[10:])
             pred = torch.sigmoid(model(path))
             loss = loss_f(pred, now)
             epoch_loss += loss
@@ -144,7 +143,7 @@ def CNN_model(
             loss.backward()
             optimizer.step()
             
-            # print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
+            print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
         print(f"\t[+] train loss = {epoch_loss/len(trainLoader)}")
         loss_plot += [(epoch_loss/len(trainLoader)).detach().to('cpu')]
         # check acc
@@ -156,16 +155,17 @@ def CNN_model(
                 path = path.to(float32).unsqueeze(1).to(device=device)
                 now = now.to(float32).to(device=device)
                 pred = torch.sigmoid(model(path))
+                loss = loss_f(pred, now)
+                all_loss += loss
                 
-                pred = torch.where(pred > 0.501, 1., 0.)
                 # print(f'pred = \n{pred[-10:].to(int)}\nnow = \n{now[-10:].to(int)}')
 
                 from sklearn.metrics import accuracy_score
-                loss = loss_f(now, pred)
-                all_loss += loss
+                
+                pred = torch.where(pred > 0.501, 1., 0.)
                 acc = accuracy_score(pred.to('cpu'), now.to('cpu'))
                 acc_all += acc
-                # print(f'loss = {loss}')
+                print(f'loss = {loss}')
             print(f'\t[+] test_loss = {(all_loss/len(testLoader))}')  
             print(f'\t[+] acc_all = {(acc_all/len(testLoader))*100}%')
             test_loss += [(all_loss/len(testLoader)).detach().to('cpu')]
