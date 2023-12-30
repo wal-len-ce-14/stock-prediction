@@ -209,9 +209,9 @@ class STOCK():
         return self.preserve.index[-1]
     def get(self, bias=0):
         if bias == 0:
-            return self.preserve.loc[self.preserve.index[-len(self.prodictors):],self.prodictors], self.preserve.index[-1], self.preserve.loc[self.preserve.index[-1], 'target5']
+            return self.preserve.loc[self.preserve.index[-len(self.prodictors):],self.prodictors], self.preserve.index[-1], self.preserve.loc[self.preserve.index[-1], 'target2']
         elif bias > 0:
-            return self.preserve.loc[self.preserve.index[-len(self.prodictors)-bias:-bias],self.prodictors], self.preserve.index[-1-bias], self.preserve.loc[self.preserve.index[-1-bias], 'target5']
+            return self.preserve.loc[self.preserve.index[-len(self.prodictors)-bias:-bias],self.prodictors], self.preserve.index[-1-bias], self.preserve.loc[self.preserve.index[-1-bias], 'target2']
 
 # stock = STOCK(2330, 2023,2023)
 

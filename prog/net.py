@@ -63,34 +63,7 @@ class CNN(nn.Module):
         output = self.relu(self.x3conv8to8(output))
         output = self.relu(self.x3conv8to8(output))
         output = self.relu(self.x3conv8to8(output))
-        # # print('1',output)
-        # res = output
-        # for i in range(0,6):
-        #     output = self.x3conv16to16(output)
-        # output = self.normal16(output)
-        # output = self.relu(output)
-        # # output = torch.cat([output, res], dim=1)
-        # # output = nn.Conv2d(32,16,3,1,1)(output)
-        # output = self.x3conv16to64(output)
-        # output = self.maxpool(output)
 
-        # res = output
-        # for i in range(0,6):
-        #     output = self.x3conv64to64(output)
-        #     output = self.normal64(output)
-        #     output = self.relu(output)
-        # # output = torch.cat([output, res], dim=1)
-        # # output = nn.Conv2d(128,64,3,1,1)(output)
-        # output = self.x3conv64to128(output)
-        # output = self.maxpool(output)
-        # # print('3',output)
-        # res = output
-        # for i in range(0,7):
-        #     output = self.x3conv128to128(output)
-        #     output = self.normal128(output)
-        #     output = self.relu(output)
-        # output = self.fc_pool(output)
-        # output = output.reshape(output.shape[0], -1)
         output = nn.Flatten()(output)
         output = self.init_Neurons(output)
         for i in range(0,2):
@@ -148,10 +121,10 @@ def CNN_model(
     # change !!!!
     optimizer = optim.Adam(model.parameters(), lr=0.00001)
     # loss_f = nn.MSELoss()
-    # loss_f = nn.BCELoss()
-    loss_f = nn.CrossEntropyLoss()
+    loss_f = nn.BCELoss()
+    # loss_f = nn.CrossEntropyLoss()
     loss_plot = []
-    test_loss =[]
+    test_loss = []
     acc_plot = []
     # train 
     for epoch in range(0, epochs):

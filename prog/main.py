@@ -35,7 +35,6 @@ while(1):
     print(f"[*] train {stockid}.TW")
     stock = STOCK(stockid, year)
     stock.add_target_info()
-
     stock.add_moving_average_info()
     stock.add_BBands_info()
     stock.add_Leverage()
@@ -43,14 +42,6 @@ while(1):
     stock.drop_Nan()
     print("[*] stock is setup!")
     # stock.stock.to_csv(f'./{stockid}from{year}.csv', index=True, sep=',', encoding='utf-8')
-    # target_day = input('what day you want to predict? (1,2,5,10) ')
-    # model = stock.Forest_model(
-    #     split=100, 
-    #     n_estimators=800, 
-    #     min_samples_split=50,
-    #     depth=6,
-    #     target_day=target_day
-    # )['model']
 
     from net import CNN_model, usemodel
     model =  CNN_model(
