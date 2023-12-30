@@ -19,7 +19,7 @@ class Data(Dataset):
         target = torch.tensor(self.target[index+self.all.shape[1]-1])
         # print(target)
         # change !!!!
-        # target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
+        target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
         return torch.tensor(info), target
 
 class CNN(nn.Module):
@@ -42,9 +42,9 @@ class CNN(nn.Module):
         self.x3conv128to128 = nn.Conv2d(128,128,3,1,1, bias=False)
         self.relu = nn.ReLU(inplace=True)
         self.f_Neurons = nn.Linear(self.size*self.size, self.size*self.size)
-        self.linearNto128 = nn.Linear(self.size*self.size, 128)
-        self.linear128to128 = nn.Linear(128, 128)
-        self.linear128toout = nn.Linear(128, self.output)
+        self.linearNto128 = nn.Linear(self.size*self.size, 128*4)
+        self.linear128to128 = nn.Linear(128*4, 128*4)
+        self.linear128toout = nn.Linear(128*4, self.output)
         self.normal16 = nn.BatchNorm2d(16)
         self.normal64 = nn.BatchNorm2d(64)
         self.normal128 = nn.BatchNorm2d(128)
@@ -84,10 +84,10 @@ class CNN(nn.Module):
         # output = self.fc_pool(output)
         # output = output.reshape(output.shape[0], -1)
         output = nn.Flatten()(x)
-        for i in range(0,4):
+        for i in range(0,6):
             output = self.f_Neurons(output)
         output = self.linearNto128(output)
-        for i in range(0,4):
+        for i in range(0,8):
             output = self.linear128to128(output)
         # output = self.d1normal(output)
         output = self.linear128toout(output)
@@ -101,7 +101,7 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=128
+        batch=64
 ):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     # device = 'cpu'
@@ -124,7 +124,7 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
     loss_f = nn.MSELoss()
     # loss_f = nn.BCELoss()
     # loss_f = nn.CrossEntropyLoss()
