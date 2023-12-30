@@ -104,7 +104,7 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=40,
+        batch=20,
         epochs=60,
         # stockname=0
 ):
@@ -122,7 +122,7 @@ def CNN_model(
         model = CNN(feature=len(prodictor.columns)).to(device=device)
     print("[*] start train CNN")
     print(f"\t with linear model.")
-    print(f'\t Load model from {if_load}')
+    print(f'\t Load model from {if_load}.')
     # print(f'\t\t stock id {stockname}')
     print(f"\t feature {len(prodictor.columns)}X{len(prodictor.columns)}")
     print(f"\t batch size {batch}")
@@ -140,7 +140,8 @@ def CNN_model(
     # loss_f = nn.MSELoss()
     # loss_f = nn.BCELoss()
     loss_f = nn.CrossEntropyLoss()
-
+    loss_plot = []
+    test_loss = []
     # train 
     for epoch in range(0, epochs):
         
@@ -157,8 +158,10 @@ def CNN_model(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            
             # print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
         print(f"\t[+] train loss = {epoch_loss/len(trainLoader)}")
+        loss_plot += [epoch_loss/len(trainLoader)]
         # check acc
         # print("\t[*] check accurracy")
         with torch.no_grad():
@@ -180,12 +183,24 @@ def CNN_model(
                 # print(f'loss = {loss}')
             print(f'\t[+] test_loss = {(all_loss/len(testLoader))}')  
             print(f'\t[+] acc_all = {(acc_all/len(testLoader))*100}%')
-
-            if round(acc_all/len(testLoader), 0) > best:
+            test_loss += [(all_loss/len(testLoader))]
+            if acc_all/len(testLoader) > best:
                 print('[*] save this model!!')
                 best = acc_all/len(testLoader)
                 torch.save(model, f'./model/e{epoch}_{round(best*100, 2)}%.pth')
             print()
+    import matplotlib.pyplot as plt
+    plt.plot(loss_plot, label="Batch Gradient Descent")
+    plt.xlabel('Epoch')
+    plt.ylabel('Cost/Total loss')
+    plt.legend()
+    plt.show()
+
+    plt.plot(test_loss,label="Test Gradient Descent")
+    plt.xlabel('Epoch')
+    plt.ylabel('Cost/Total loss')
+    plt.legend()
+    plt.show()
 
     print("[*] train end")
     return model
