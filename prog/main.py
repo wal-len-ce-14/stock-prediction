@@ -56,7 +56,6 @@ while(1):
     model =  CNN_model(
         stock.stock[stock.prodictors],        
         stock.stock['target2'],
-        epochs=100,
         # 'randomforest/model/model19e59.375%.pth'
     )
     # for i in range(0,20):

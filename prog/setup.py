@@ -22,7 +22,7 @@ def get_stock_history(stockid, start_year, end_year):
         stock = tws.Stock(f"{stockid}")
         for year in range(start_year, end_year+1):
             print(f"\t[+] get stock info from {year} ...")
-            time.sleep(0.2)
+            time.sleep(0.1)
             for month in range(1, 13):
                 stock_infos = stock.fetch(year,month)
                 for idx, stock_info in enumerate(stock_infos):
@@ -155,7 +155,7 @@ class STOCK():
                 new_predictor += [interval_ratio_col]
         self.prodictors += new_predictor
 
-    def add_Margin(self):
+    def add_Margin(self):   # 融資券
         from scraping import get_Margin_info as get
         margin = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, margin, on='date', how='inner')
@@ -222,7 +222,7 @@ class STOCK():
 # stock.add_Margin()
 # stock.drop_Nan()
 # print(stock.get(bias=1))
-# print(stock.stock['change_value5'][:20].shape[0])
+# print(stock.stock['change_value5'][:20])
 # print(stock.stock['change_value5'][:20].values.shape[0])
 # print(stock.stock['change_value5'][:20].values)
 # print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])

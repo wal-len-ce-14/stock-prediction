@@ -12,9 +12,9 @@ class Data(Dataset):
     def __getitem__(self, index):
         for i in range(index, index+self.all.shape[1]):
             if i == index:
-                info = [self.all[i]]
+                info = np.array([self.all[i]])
             else:
-                info += [self.all[i]]
+                info = np.append(info,[self.all[i]], axis=0)
 
         target = torch.tensor(self.target[index+self.all.shape[1]-1])
         # print(target)
@@ -33,14 +33,17 @@ class CNN(nn.Module):
         # net segment
         self.maxpool = nn.MaxPool2d(2)
         self.fc_pool = nn.AvgPool2d(int(self.size/4), stride=1)
-        self.x1init = nn.Conv2d(self.input, 8, 1,1)
-        self.x3init = nn.Conv2d(8, 16, 3,1,1)
+        self.x1init = nn.Conv2d(self.input, 4, 1,1)
+        self.x1conv4to4 = nn.Conv2d(4, 4, 1,1)
+        self.x3init = nn.Conv2d(4,8, 3,1,1)
+        self.x3conv8to8 = nn.Conv2d(8,8, 3,1,1)
         self.x3conv16to16 = nn.Conv2d(16,16,3,1,1, bias=False)
         self.x3conv16to64 = nn.Conv2d(16,64,3,1,1, bias=False)
         self.x3conv64to64 = nn.Conv2d(64,64,3,1,1, bias=False)
         self.x3conv64to128 = nn.Conv2d(64,128,3,1,1, bias=False)
         self.x3conv128to128 = nn.Conv2d(128,128,3,1,1, bias=False)
         self.relu = nn.ReLU(inplace=True)
+        self.init_Neurons = nn.Linear(self.size*self.size*8, self.size*self.size)
         self.f_Neurons = nn.Linear(self.size*self.size, self.size*self.size)
         self.linearNto128 = nn.Linear(self.size*self.size, 128*4)
         self.linear128to128 = nn.Linear(128*4, 128*4)
@@ -52,9 +55,14 @@ class CNN(nn.Module):
         self.drop = nn.Dropout(0.1)
 
     def forward(self, x):
-        # output = self.x1init(x)
-        # # print('0',output.shape)
-        # output = self.x3init(output)    # ch = 16
+        output = self.x1init(x)         # ch = 4
+        output = self.relu(self.x1conv4to4(output))
+        output = self.relu(self.x1conv4to4(output))
+        output = self.relu(self.x1conv4to4(output))
+        output = self.x3init(output)    # ch = 8
+        output = self.relu(self.x3conv8to8(output))
+        output = self.relu(self.x3conv8to8(output))
+        output = self.relu(self.x3conv8to8(output))
         # # print('1',output)
         # res = output
         # for i in range(0,6):
@@ -83,13 +91,14 @@ class CNN(nn.Module):
         #     output = self.relu(output)
         # output = self.fc_pool(output)
         # output = output.reshape(output.shape[0], -1)
-        output = nn.Flatten()(x)
-        for i in range(0,8):
+        output = nn.Flatten()(output)
+        output = self.init_Neurons(output)
+        for i in range(0,2):
             output = self.relu(self.f_Neurons(output))
             # if(output.shape[0]):
             #     output = self.d1normal(output)
         output = self.linearNto128(output)
-        for i in range(0,6):
+        for i in range(0,4):
             output = self.drop(self.relu(self.linear128to128(output)))
             # output = self.d1normal(output)
         # output = self.d1normal(output)
@@ -104,13 +113,13 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=20,
-        epochs=60,
+        batch=64,
+        epochs=100,
         # stockname=0
 ):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     # device = 'cpu'
-    best = 0
+    best = 0.55
     #create model
     if if_load != '':
         try:
@@ -123,7 +132,6 @@ def CNN_model(
     print("[*] start train CNN")
     print(f"\t with linear model.")
     print(f'\t Load model from {if_load}.')
-    # print(f'\t\t stock id {stockname}')
     print(f"\t feature {len(prodictor.columns)}X{len(prodictor.columns)}")
     print(f"\t batch size {batch}")
     print(f"\t epochs time {epochs}")
@@ -131,6 +139,8 @@ def CNN_model(
     
     # dataset
     data = Data(prodictor.values, target.values) # .values
+    print(f"\t DATA LEN {len(data)}")
+    print(f"\t DATA LEN/batch {len(data)/batch}")
     traindata, testdata = random_split(data, [int(len(data)*0.9), len(data)-int(len(data)*0.9)])
     trainLoader = DataLoader(traindata, batch, shuffle=True, drop_last=True)
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
@@ -141,14 +151,16 @@ def CNN_model(
     # loss_f = nn.BCELoss()
     loss_f = nn.CrossEntropyLoss()
     loss_plot = []
-    test_loss = []
+    test_loss =[]
+    acc_plot = []
     # train 
     for epoch in range(0, epochs):
         
         epoch_loss = 0
         print(f"[*] epoch {epoch+1}")
         ## training
-        for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
+        from tqdm import tqdm
+        for idx, (path, now) in tqdm(enumerate(trainLoader), total=len(trainLoader)):  # path 過去資料 now 現在要預測的
             path = path.to(float32).unsqueeze(1).to(device=device)
             now = now.to(float32).to(device=device)
             # print(now[10:])
@@ -161,7 +173,7 @@ def CNN_model(
             
             # print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
         print(f"\t[+] train loss = {epoch_loss/len(trainLoader)}")
-        loss_plot += [epoch_loss/len(trainLoader)]
+        loss_plot += [(epoch_loss/len(trainLoader)).detach().to('cpu')]
         # check acc
         # print("\t[*] check accurracy")
         with torch.no_grad():
@@ -183,22 +195,27 @@ def CNN_model(
                 # print(f'loss = {loss}')
             print(f'\t[+] test_loss = {(all_loss/len(testLoader))}')  
             print(f'\t[+] acc_all = {(acc_all/len(testLoader))*100}%')
-            test_loss += [(all_loss/len(testLoader))]
+            test_loss += [(all_loss/len(testLoader)).detach().to('cpu')]
+            acc_plot += [(acc_all/len(testLoader))]
             if acc_all/len(testLoader) > best:
                 print('[*] save this model!!')
                 best = acc_all/len(testLoader)
                 torch.save(model, f'./model/e{epoch}_{round(best*100, 2)}%.pth')
             print()
     import matplotlib.pyplot as plt
-    plt.plot(loss_plot, label="Batch Gradient Descent")
+    
+    plt.plot(loss_plot, label="Batch Gradient Descent", color='red')
+    plt.plot(test_loss,label="Test Gradient Descent", color='blue')
+    plt.grid('True', color='y')
     plt.xlabel('Epoch')
-    plt.ylabel('Cost/Total loss')
+    plt.ylabel('loss')
     plt.legend()
     plt.show()
 
-    plt.plot(test_loss,label="Test Gradient Descent")
+    plt.plot(acc_plot, label="acc", color='red')
+    plt.grid('True', color='y')
     plt.xlabel('Epoch')
-    plt.ylabel('Cost/Total loss')
+    plt.ylabel('acc')
     plt.legend()
     plt.show()
 
