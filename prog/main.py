@@ -31,7 +31,8 @@ warnings.filterwarnings("ignore", category=PerformanceWarning)
 while(1):
     print('[*] --setup--') 
     stockid = input("please enter the stockid: ")
-    year = int(input("training year to 2023 from: "))
+    # year = int(input("training year to 2023 from: "))
+    year = 2013
     print(f"[*] train {stockid}.TW")
     stock = STOCK(stockid, year)
     stock.add_target_info()
@@ -43,14 +44,23 @@ while(1):
     print("[*] stock is setup!")
     # stock.stock.to_csv(f'./{stockid}from{year}.csv', index=True, sep=',', encoding='utf-8')
 
-    from net import CNN_model, usemodel
-    model =  CNN_model(
+    from net import CNN_model, Linear_model, usemodel
+    # model =  CNN_model(
+    #     stock.stock[stock.prodictors],        
+    #     stock.stock['fluctuation'],
+    #     # 'model/e21_60.16%.pth'
+    # )
+    model =  Linear_model(
         stock.stock[stock.prodictors],        
-        stock.stock['target2'],
-        # 'randomforest/model/model19e59.375%.pth'
+        stock.stock['fluctuation'],
+        # 'model/e21_60.16%.pth'
     )
-    # for i in range(0,20):
-    #     usemodel('./randomforest/model/model1.pth', stock, i)
+    # sum = 0
+    # for i in range(50,-1,-1):
+    #     _,_,_,s = usemodel('./model/e8_60.94%.pth', stock, i)
+    #     sum += s
+    # print(sum/150)
+    
     
     
 

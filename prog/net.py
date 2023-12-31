@@ -19,16 +19,18 @@ class Data(Dataset):
         target = torch.tensor(self.target[index+self.all.shape[1]-1])
         # print(target)
         # change !!!!
-        target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
+        # target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
         return torch.tensor(info), target
-
+    
 class CNN(nn.Module):
-    def __init__(self, input=1, output=2, feature=16):
+    def __init__(self, input=1, output=3, feature=16):
         super(CNN, self).__init__()
         # input output channel
         self.input = input  
         self.output = output
         self.size = feature
+        
+
 
         # net segment
         self.maxpool = nn.MaxPool2d(2)
@@ -52,7 +54,7 @@ class CNN(nn.Module):
         self.normal64 = nn.BatchNorm2d(64)
         self.normal128 = nn.BatchNorm2d(128)
         self.d1normal = nn.BatchNorm1d(self.size*self.size)
-        self.drop = nn.Dropout(0.1)
+        self.drop = nn.Dropout(0.2)
 
     def forward(self, x):
         output = self.x1init(x)         # ch = 4
@@ -66,9 +68,9 @@ class CNN(nn.Module):
         output = self.init_Neurons(output)
         # 2,4 2,5
         for i in range(0,2):  
-            output = self.relu(self.f_Neurons(output))
+            output = self.drop(self.relu(self.f_Neurons(output)))
         output = self.linearNto128(output)
-        for i in range(0,5):
+        for i in range(0,4):
             output = self.drop(self.relu(self.linear128to128(output)))
 
         output = self.linear128toout(output)
@@ -82,13 +84,13 @@ def CNN_model(
         prodictor,
         target,
         if_load='',
-        batch=64,
+        batch=128,
         epochs=100,
         # stockname=0
 ):
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     # device = 'cpu'
-    best = 0.55
+    best = 0.45
     #create model
     if if_load != '':
         try:
@@ -115,7 +117,7 @@ def CNN_model(
     testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
     # opt, loss
     # change !!!!
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
     # loss_f = nn.MSELoss()
     # loss_f = nn.BCELoss()
     loss_f = nn.CrossEntropyLoss()
@@ -129,7 +131,7 @@ def CNN_model(
         print(f"[*] epoch {epoch+1}")
         ## training
         from tqdm import tqdm
-        for idx, (path, now) in enumerate(trainLoader):  # path 過去資料 now 現在要預測的
+        for idx, (path, now) in tqdm(enumerate(trainLoader), total=len(trainLoader)):  # path 過去資料 now 現在要預測的
             path = path.to(float32).unsqueeze(1).to(device=device)
             now = now.to(float32).to(device=device)
             pred = torch.sigmoid(model(path))
@@ -139,7 +141,7 @@ def CNN_model(
             loss.backward()
             optimizer.step()
             
-            print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
+            # print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
         print(f"\t[+] train loss = {epoch_loss/len(trainLoader)}")
         loss_plot += [(epoch_loss/len(trainLoader)).detach().to('cpu')]
         # check acc
@@ -155,10 +157,12 @@ def CNN_model(
                 from sklearn.metrics import accuracy_score
                 loss = loss_f(pred, now)
                 all_loss += loss
-                pred = torch.where(pred > 0.501, 1., 0.)
+                # print(f'origin \n{(pred[:10], 2)}')
+                pred = torch.where(pred > 0.51, 1., 0.)
                 acc = accuracy_score(pred.to('cpu'), now.to('cpu'))
                 acc_all += acc
-                print(f'loss = {loss}')
+                print(f'pred \n{pred[:10].to(int)}')
+                print(f'now \n{now[:10].to(int)}')
             print(f'\t[+] test_loss = {(all_loss/len(testLoader))}')  
             print(f'\t[+] acc_all = {(acc_all/len(testLoader))*100}%')
             test_loss += [(all_loss/len(testLoader)).detach().to('cpu')]
@@ -168,10 +172,167 @@ def CNN_model(
                 best = acc_all/len(testLoader)
                 torch.save(model, f'./model/e{epoch}_{round(best*100, 2)}%.pth')
             print()
+
     import matplotlib.pyplot as plt
     
-    plt.plot(loss_plot, label="Batch Gradient Descent", color='red')
-    plt.plot(test_loss,label="Test Gradient Descent", color='blue')
+    plt.plot(loss_plot, label="Train loss", color='red')
+    plt.plot(test_loss,label="Test loss", color='blue')
+    plt.grid('True', color='y')
+    plt.xlabel('Epoch')
+    plt.ylabel('loss')
+    plt.legend()
+    plt.show()
+
+    plt.plot(acc_plot, label="acc", color='red')
+    plt.grid('True', color='y')
+    plt.xlabel('Epoch')
+    plt.ylabel('acc')
+    plt.legend()
+    plt.show()
+
+    print("[*] train end")
+    return model
+
+class Data2(Dataset):
+    def __init__(self, all_info, target): 
+        self.all = all_info
+        self.target = target
+    def __len__(self):
+        return self.all.shape[0]-20
+    def __getitem__(self, index):
+        for i in range(index, index+20):
+            if i == index:
+                info = np.array([self.all[i]])
+            else:
+                info = np.append(info,[self.all[i]], axis=0)
+
+        target = torch.tensor(self.target[index+20-1])
+        # print(target)
+        # change !!!!
+        # target = torch.where(target > 0.5, torch.tensor([1,0]), torch.tensor([0,1])) 
+        return torch.tensor(info), target
+
+class Linear(nn.Module):
+    def __init__(self, input=1, output=3, feature=16, day=20):
+        super(Linear, self).__init__()
+        self.input = input  
+        self.output = output
+        self.size = feature
+        self.day = day
+        # net segment
+        self.mid = int(self.size*self.day*16)
+        self.init = nn.Linear(self.size*self.day, self.mid)
+        self.middle = nn.Linear(self.mid, self.mid)
+        self.out = nn.Linear(self.mid, self.output)
+        self.relu = nn.ReLU(inplace=True)
+        self.drop = nn.Dropout(0.15)
+
+    def forward(self, x):
+        output = nn.Flatten()(x)
+        output = self.init(output)
+        for i in range(0,4):
+            output = self.drop(self.relu(self.middle(output)))
+        output = self.out(output)
+        return output
+
+def Linear_model(
+        prodictor,
+        target,
+        if_load='',
+        batch=34,
+        epochs=100,
+        # stockname=0
+):
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    # device = 'cpu'
+    best = 0.45
+    #create model
+    if if_load != '':
+        try:
+            model = torch.load(if_load)
+            # print(f'Load model from {if_load}')
+        except Exception as e:
+            print(e)
+    else:
+        model = Linear(feature=len(prodictor.columns)).to(device=device)
+    print("[*] start train Linear")
+    print(f'\t Load model from {if_load}.')
+    print(f"\t feature {len(prodictor.columns)} X 30(day)")
+    print(f"\t batch size {batch}")
+    print(f"\t epochs time {epochs}")
+    print(f"\t device {device}")
+    
+    # dataset
+    data = Data2(prodictor.values, target.values) # .values
+    print(f"\t DATA LEN {len(data)}")
+    print(f"\t DATA LEN/batch {len(data)/batch}")
+    traindata, testdata = random_split(data, [int(len(data)*0.9), len(data)-int(len(data)*0.9)])
+    trainLoader = DataLoader(traindata, batch, shuffle=True, drop_last=True)
+    testLoader = DataLoader(testdata, batch, shuffle=True, drop_last=True)
+    # opt, loss
+    # change !!!!
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
+    # loss_f = nn.MSELoss()
+    # loss_f = nn.BCELoss()
+    loss_f = nn.CrossEntropyLoss()
+    loss_plot = []
+    test_loss = []
+    acc_plot = []
+    # train 
+    for epoch in range(0, epochs):
+        
+        epoch_loss = 0
+        print(f"[*] epoch {epoch+1}")
+        ## training
+        from tqdm import tqdm
+        for idx, (path, now) in tqdm(enumerate(trainLoader), total=len(trainLoader)):  # path 過去資料 now 現在要預測的
+            path = path.to(float32).to(device=device)
+            now = now.to(float32).to(device=device)
+            # print(path.shape, now.shape)
+            pred = torch.sigmoid(model(path))
+            loss = loss_f(pred, now)
+            epoch_loss += loss
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            # print(f"\t[+] Batch {idx+1} done, with loss = {loss}")
+        print(f"\t[+] train loss = {epoch_loss/len(trainLoader)}")
+        loss_plot += [(epoch_loss/len(trainLoader)).detach().to('cpu')]
+        # check acc
+        # print("\t[*] check accurracy")
+        with torch.no_grad():
+            all_loss = 0
+            acc_all = 0
+            for idx, (path, now) in enumerate(testLoader):
+                path = path.to(float32).to(device=device)
+                now = now.to(float32).to(device=device)
+                pred = torch.sigmoid(model(path))
+
+                from sklearn.metrics import accuracy_score
+                loss = loss_f(pred, now)
+                all_loss += loss
+                # print(f'origin \n{(pred[:10], 2)}')
+                pred = torch.where(pred > 0.51, 1., 0.)
+                acc = accuracy_score(pred.to('cpu'), now.to('cpu'))
+                acc_all += acc
+                if idx == 0:
+                    print(f'pred \n{pred[:10].to(int)}')
+                    print(f'now \n{now[:10].to(int)}')
+            print(f'\t[+] test_loss = {(all_loss/len(testLoader))}')  
+            print(f'\t[+] acc_all = {(acc_all/len(testLoader))*100}%')
+            test_loss += [(all_loss/len(testLoader)).detach().to('cpu')]
+            acc_plot += [(acc_all/len(testLoader))]
+            if acc_all/len(testLoader) > best:
+                print('[*] save this model!!')
+                best = acc_all/len(testLoader)
+                torch.save(model, f'./model/e{epoch}_{round(best*100, 2)}%.pth')
+            print()
+            
+    import matplotlib.pyplot as plt
+    
+    plt.plot(loss_plot, label="Train loss", color='red')
+    plt.plot(test_loss,label="Test loss", color='blue')
     plt.grid('True', color='y')
     plt.xlabel('Epoch')
     plt.ylabel('loss')
@@ -189,17 +350,20 @@ def CNN_model(
     return model
 
 def usemodel(model_path, stock, bias=0):
-    model = torch.load(model_path)
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    model = torch.load(model_path).to(device)
     prodictor, date, ups_or_downs = stock.get(bias)
     # print(prodictor)
-    result = torch.sigmoid(model(torch.tensor(prodictor.values, dtype=float32).unsqueeze(0).unsqueeze(0)))
+    result = torch.sigmoid(model(torch.tensor(prodictor.values, dtype=float32, device=device).unsqueeze(0).unsqueeze(0)))
+    # result = torch.sigmoid(model(torch.tensor(prodictor.values, dtype=float32, device=device).unsqueeze(0)))
     result = torch.where(result > 0.501, 1, 0)
-    print(result, date, ups_or_downs)
-    return result.numpy(), date, ups_or_downs
+    perform = (result.squeeze(0).to('cpu').numpy() == ups_or_downs).sum()
+    print(date, 'pred', result.squeeze(0).to('cpu').numpy(), 'true', ups_or_downs, 'perform', perform)
+    return result.to('cpu').numpy(), date, ups_or_downs, perform
 
-# x = torch.randn(10,1,16,16)
+# x = torch.randn(10,16,20)
 # print('in', x.shape)
 
-# model = CNN()
+# model = Linear()
 # print('m',model(x).shape)
 

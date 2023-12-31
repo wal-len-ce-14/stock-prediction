@@ -54,7 +54,8 @@ class STOCK():
         self.stockid = stockid
         self.start = start_year
         self.end = end_year
-        self.stock = get_stock_history(stockid, start_year, end_year)
+        from scraping import get_price_detail as get
+        self.stock = get(stockid, start_year, end_year)
         self.preserve = self.stock.tail(1)
         self.prodictors = []
 
@@ -78,25 +79,36 @@ class STOCK():
         else:
             return 0
 
+    def condition(self, row): #[多 空 無]
+        if row['wave'] > 2:
+            if row['down']-row['up'] > 1 or row['gap'] > 1.5:
+                return np.array([1,0,0])
+            elif row['up']-row['down'] > 1 or row['gap'] < -1.5:
+                return np.array([0,1,0])
+            else:
+                return np.array([0,0,1])
+        else:
+            return np.array([0,0,1])
+
     def add_target_info(self, close='close'):  # 一般資訊
         self.stock['change_value1'] = ((self.stock[close] - self.stock[close].shift(1)) / self.stock[close].shift(1))
         self.stock['change_value2'] = ((self.stock[close] - self.stock[close].shift(2)) / self.stock[close].shift(2))
         self.stock['change_value5'] = ((self.stock[close] - self.stock[close].shift(5)) / self.stock[close].shift(5))
-        self.stock['change_value10'] = ((self.stock[close] - self.stock[close].shift(10)) / self.stock[close].shift(10))
+        # self.stock['change_value10'] = ((self.stock[close] - self.stock[close].shift(10)) / self.stock[close].shift(10))
 
         self.stock['target'] = self.stock.apply(self.classification, axis=1, args=(1,))
-        self.stock['target1'] = self.stock.apply(self.classification, axis=1, args=(1,))
-        self.stock['target2'] = self.stock.apply(self.classification, axis=1, args=(2,))
-        self.stock['target5'] = self.stock.apply(self.classification, axis=1, args=(5,))
-        self.stock['target10'] = self.stock.apply(self.classification, axis=1, args=(10,))
+        # self.stock['target1'] = self.stock.apply(self.classification, axis=1, args=(1,))
+        self.stock['target2'] = self.stock.apply(self.classification, axis=1, args=(2,)).shift(-1)
+        self.stock['target5'] = self.stock.apply(self.classification, axis=1, args=(5,)).shift(-1)
 
-        self.stock['short_term'] = (self.stock['change_value5'] + self.stock['change_value2']) / 2
-        self.stock['mid_term'] = (self.stock['change_value10'] - self.stock['change_value5']) / 2
+        self.stock['fluctuation'] = self.stock.apply(self.condition, axis=1).shift(-1)
 
-        self.prodictors += ['change_value1', 'change_value2', 'change_value5', 'change_value10', 'short_term', 'mid_term']
-        
+
+        self.prodictors += ['change_value2', 'change_value5']
+        self.prodictors += ['wave', 'gap', 'up', 'down']
+
     def add_moving_average_info(self):  # 均線比率
-        horizons = [2,5,10,20,60]
+        horizons = [2,5,10,20,60,120,240]
         new_predictor = []
 
         for horizon in horizons:
@@ -106,14 +118,10 @@ class STOCK():
             trend_column = f"trend_{horizon}"
             # 前幾天的上漲天數總和 因為trend不能包含到今天的資訊 要在shift(1)
             self.stock[trend_column] = self.stock.shift(1).rolling(horizon)["target"].sum() 
-            new_predictor += [rolling_avg_column, trend_column]
+            new_predictor += [rolling_avg_column]
             # 量平均
             rolling_avg = (self.stock['capacity']-self.stock['capacity'].rolling(horizon).mean()) / self.stock['capacity']
             rolling_avg_column = f"cap_avg_{horizon}"
-            self.stock[rolling_avg_column] = rolling_avg*100
-            new_predictor += [rolling_avg_column]
-            rolling_avg = (self.stock['transaction']-self.stock['transaction'].rolling(horizon).mean()) / self.stock['transaction']
-            rolling_avg_column = f"'trans_avg_{horizon}"
             self.stock[rolling_avg_column] = rolling_avg*100
             new_predictor += [rolling_avg_column]
 
@@ -121,7 +129,7 @@ class STOCK():
         return self.prodictors
 
     def add_BBands_info(self):  # 布林通道
-        horizons = [2,5,10,20,60]
+        horizons = [2,5,10,20]
         new_predictor = []
 
         for horizon in horizons:
@@ -145,13 +153,13 @@ class STOCK():
         from scraping import get_juridical_person as get
         Leverage = get(self.stockid, self.start)
         self.stock = pd.merge(self.stock, Leverage, on='date', how='inner')
-        horizons_sum = [1,3,5,10,20,40,60,120]
+        horizons_sum = [1,3,5,10,20,60,120]
         new_predictor = []
         for horizon in horizons_sum:
             for lever in ['Foreign_Investor','Investment_Trust','Dealer_self','Dealer_Hedging']:
                 interval_ratio = self.stock[lever] / self.stock[lever].rolling(horizon).sum().replace(0,1)
                 interval_ratio_col = f'{lever}_{horizon}'
-                self.stock[interval_ratio_col] = interval_ratio
+                self.stock[interval_ratio_col] = interval_ratio*100
                 new_predictor += [interval_ratio_col]
         self.prodictors += new_predictor
 
@@ -209,11 +217,11 @@ class STOCK():
         return self.preserve.index[-1]
     def get(self, bias=0):
         if bias == 0:
-            return self.preserve.loc[self.preserve.index[-len(self.prodictors):],self.prodictors], self.preserve.index[-1], self.preserve.loc[self.preserve.index[-1], 'target2']
+            return self.preserve.loc[self.preserve.index[-len(self.prodictors):],self.prodictors], self.preserve.index[-1], self.preserve.loc[self.preserve.index[-1], 'fluctuation']
         elif bias > 0:
-            return self.preserve.loc[self.preserve.index[-len(self.prodictors)-bias:-bias],self.prodictors], self.preserve.index[-1-bias], self.preserve.loc[self.preserve.index[-1-bias], 'target2']
+            return self.preserve.loc[self.preserve.index[-len(self.prodictors)-bias:-bias],self.prodictors], self.preserve.index[-1-bias], self.preserve.loc[self.preserve.index[-1-bias], 'fluctuation']
 
-# stock = STOCK(2330, 2023,2023)
+# stock = STOCK(3006, 2023,2023)
 
 # stock.add_target_info()
 # stock.add_moving_average_info()
@@ -222,7 +230,7 @@ class STOCK():
 # stock.add_Margin()
 # stock.drop_Nan()
 # print(stock.get(bias=1))
-# print(stock.stock['change_value5'][:20])
+# print(stock.stock[-10:])
 # print(stock.stock['change_value5'][:20].values.shape[0])
 # print(stock.stock['change_value5'][:20].values)
 # print(stock.stock[['change_value1', 'change_value2', 'change_value5', 'change_value10']].shape[1])

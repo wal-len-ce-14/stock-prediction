@@ -19,7 +19,7 @@ def deter():
     stock.add_Margin()
     stock.drop_Nan()
     print("[*] stock is setup!")
-    result, _, _ = usemodel('./randomforest/model/model1.pth', stock, 1) # 2
+    result, _, _ = usemodel('./model/model1.pth', stock, 1) # 2
     print(result)
     if np.array_equal(result,np.array([[1,0]])):
         ans = tk.Label(text="可以", font=('Arial',15,'bold'))
