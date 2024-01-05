@@ -81,6 +81,7 @@ def get_price_detail(stockid, start, end=2023):
     return data
 
 
-# get_juridical_person(2330, 2023)
-# print(get_price_detail(2330, 2023))
+
+
+# get(2330, 2023)
 
